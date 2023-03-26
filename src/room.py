@@ -35,7 +35,7 @@ class Room(object):
         self.tag = dial_plan.tag
         self.dial_plan: Dialplan = dial_plan
         self.bridges_plan: list[Dialplan] = self.dial_plan.content
-        self.room_id = f'{self.tag}{lead.lead_id}'
+        self.room_id = f'{self.tag}#{lead.lead_id}'
         self.add_status_room(dial_plan.status)
 
     def add_status_room(self, new_status):
@@ -69,7 +69,7 @@ class Room(object):
                                     bridge_plan=bridge_plan,
                                     tags_statuses=self.tags_statuses)
                     self.bridges.append(bridge)
-                    await bridge.start_bridge()
+                    asyncio.create_task(bridge.start_bridge())
 
     async def run_room_message_pump(self):
         logger.info('run_message_pump_for_bridges')

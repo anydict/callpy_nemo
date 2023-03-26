@@ -18,7 +18,7 @@ class Chan(object):
         self.tags_statuses = tags_statuses
         self.clip_plan: list[Dialplan] = chan_plan.content
         self.tag = chan_plan.tag
-        self.chan_id = f'{self.tag}{lead_id}'
+        self.chan_id = f'{self.tag}#{lead_id}'
         self.add_status_chan(chan_plan.status)
 
     def add_status_chan(self, new_status):

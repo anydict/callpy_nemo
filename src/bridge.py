@@ -19,7 +19,7 @@ class Bridge(object):
         self.tags_statuses = tags_statuses
         self.chan_plan: list[Dialplan] = bridge_plan.content
         self.tag = bridge_plan.tag
-        self.bridge_id = f'{self.tag}{lead_id}'
+        self.bridge_id = f'{self.tag}#{lead_id}'
         self.add_status_bridge(bridge_plan.status)
 
     def add_status_bridge(self, new_status):
@@ -32,6 +32,7 @@ class Bridge(object):
         await asyncio.sleep(0)
 
     async def check_trigger_chans(self):
+        logger.info('check_trigger_chans')
         for chan_plan in self.chan_plan:
             if chan_plan.tag in [chan.tag for chan in self.chans]:
                 continue
@@ -44,16 +45,22 @@ class Bridge(object):
                                 chan_plan=chan_plan,
                                 tags_statuses=self.tags_statuses)
                     self.chans.append(chan)
-                    await chan.start_chan()
-                    pass
+                    asyncio.create_task(chan.start_chan())
+        logger.info('check_trigger_chans end')
 
     async def start_bridge(self):
-        await self.ari.get_peers()
-        # await self.ari.create_bridge(bridge_id=self.bridge_id)
-        self.add_status_bridge('ready')
-        await self.check_trigger_chans()
-        while self.config['alive']:
-            await asyncio.sleep(4)
+        try:
+            logger.info('start_bridge')
+            await self.ari.create_bridge(bridge_id=self.bridge_id)
+            # await self.ari.subscription(app='anydict', event_source=f'bridge:{self.bridge_id}')
+            self.add_status_bridge('ready')
+            await self.check_trigger_chans()
+            while self.config['alive']:
+                logger.info('start_bridge alive')
+                # await self.ari.custom_event('BridgeCreated', 'anydict')
+                await asyncio.sleep(4)
+        except Exception as e:
+            logger.error(f'start_bridge e={e}')
 
     async def run_bridge_message_pump(self):
         logger.info('run_bridge_message_pump')

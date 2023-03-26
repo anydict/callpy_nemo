@@ -10,7 +10,7 @@ from src.dialer import Dialer
 from src.dialplan import Dialplan
 from src.lead import Lead
 
-logger.add("logs/loguru.log", rotation="1 day")
+logger.add("src/logs/loguru.log", rotation="1 day")
 
 
 async def alive(config):
@@ -42,9 +42,11 @@ async def main():
         queue_lead.append(lead)
 
     ari = ARI(cfg.config, queue_msg_asterisk, 'anydict')
-    asyncio.create_task(ari.connect())
+    await ari.connect()
     peers = await ari.get_peers()
     logger.info(f"Peers: {peers}")
+    # subscribe = await ari.subscription('anydict')
+    # logger.info(f"Subscribe: {subscribe}")
 
     dialer = Dialer(ari=ari,
                     config=cfg.config,

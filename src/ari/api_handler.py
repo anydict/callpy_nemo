@@ -16,17 +16,21 @@ class APIHandler(object):
         self._session = aiohttp.ClientSession(auth=auth)
 
     async def send(self, url: str, method: str, body: dict):
+        logger.debug(f'send url={url} meth={method}, body={body}')
         response = {'http_code': 503}
         try:
             resp = await self._session.request(method=method, url=url, data=body)
             async with resp:
-                json_res = await resp.json()
+                if resp.content_type == 'application/json':
+                    json_res = await resp.json()
+                else:
+                    json_res = {}
                 response.update({'data': json_res, 'http_code': resp.status})
         except Exception as e:
             response.update({'msg': e})
             logger.error(response)
 
-        logger.debug(response)
+        logger.debug(f'response={response}')
         return response
 
     async def get_peers(self):
@@ -77,6 +81,15 @@ class APIHandler(object):
     async def get_sound_detail(self, sound_id):
         return await self.send(f'{self._url}/sounds/{sound_id}', 'GET', {})
 
+    async def subscription(self, app: str, event_source: str = 'channel:,bridge:,endpoint:'):
+        res = await self.send(f'{self._url}/applications/{app}/subscription', 'POST', {'eventSource': event_source})
+        return res
+
     async def create_bridge(self, bridge_id: str, name: str = ''):
         name = bridge_id if name == '' else name
-        return await self.send(f'{self._url}/bridges', 'POST', {'type': 'mixing', 'bridgeId': bridge_id, 'name': name})
+        res = await self.send(f'{self._url}/bridges', 'POST', {'type': 'mixing', 'bridgeId': bridge_id, 'name': name})
+        return res
+
+    async def custom_event(self, event_name: str, app: str, source: str = 'bridge:bridge_main#222'):
+        res = await self.send(f'{self._url}/events/user/{event_name}', 'POST', {'application': app, 'source': source})
+        return res
