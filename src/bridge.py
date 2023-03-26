@@ -3,19 +3,24 @@ from datetime import datetime
 
 from loguru import logger
 
+from src.ari.ari import ARI
+from src.chan import Chan
+from src.dialplan import Dialplan
+
 
 class Bridge(object):
-    chans: list = []
+    chans: list[Chan] = []
     queue_msg_bridge = []
 
-    def __init__(self, lead_id, config, bridge_plan, tags_statuses):
+    def __init__(self, ari: ARI, config: dict, lead_id: str, bridge_plan: Dialplan, tags_statuses):
+        self.ari = ari
+        self.config = config
         self.lead_id = lead_id
-        self._config = config
         self.tags_statuses = tags_statuses
-        self.chan_plan = bridge_plan['content']
-        self.tag = bridge_plan['tag']
-        self.add_status_bridge(bridge_plan['status'])
-        pass
+        self.chan_plan: list[Dialplan] = bridge_plan.content
+        self.tag = bridge_plan.tag
+        self.bridge_id = f'{self.tag}{lead_id}'
+        self.add_status_bridge(bridge_plan.status)
 
     def add_status_bridge(self, new_status):
         if self.tag not in self.tags_statuses:
@@ -26,30 +31,41 @@ class Bridge(object):
         self.queue_msg_bridge.append(msg)
         await asyncio.sleep(0)
 
-    async def check_trigger_bridges(self):
+    async def check_trigger_chans(self):
         for chan_plan in self.chan_plan:
-            if chan_plan['tag'] in [chan.tag for chan in self.chans]:
+            if chan_plan.tag in [chan.tag for chan in self.chans]:
                 continue
-            if chan_plan['trigger_tag'] in self.tags_statuses:
-                bridge_status = self.tags_statuses.get(chan_plan['trigger_tag'])
-                if chan_plan['trigger_status'] in bridge_status:
-                    # bridge = Chan(lead_id=self.lead_id, config=self._config, chan_plan=chan_plan)
-                    # self.chans.append(bridge)
-                    # bridge.start_bridge()
+            if chan_plan.trigger_tag in self.tags_statuses:
+                bridge_status = self.tags_statuses.get(chan_plan.trigger_tag)
+                if chan_plan.trigger_status in bridge_status:
+                    chan = Chan(ari=self.ari,
+                                config=self.config,
+                                lead_id=self.lead_id,
+                                chan_plan=chan_plan,
+                                tags_statuses=self.tags_statuses)
+                    self.chans.append(chan)
+                    await chan.start_chan()
                     pass
 
     async def start_bridge(self):
+        await self.ari.get_peers()
+        # await self.ari.create_bridge(bridge_id=self.bridge_id)
         self.add_status_bridge('ready')
-        while self._config['alive']:
+        await self.check_trigger_chans()
+        while self.config['alive']:
             await asyncio.sleep(4)
 
     async def run_bridge_message_pump(self):
         logger.info('run_bridge_message_pump')
-        while self._config['alive']:
+        while self.config['alive']:
             if len(self.queue_msg_bridge) == 0:
                 await asyncio.sleep(0.1)
                 continue
 
             msg = self.queue_msg_bridge.pop()
+
+            for chan in self.chans:
+                if 1 == 1:
+                    await chan.append_queue_msg_chan(msg)
 
             logger.debug(f'run_room_message_pump msg={msg}')

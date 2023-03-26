@@ -4,8 +4,10 @@ import json
 import websockets
 from loguru import logger
 
+from src.ari.api_handler import APIHandler
 
-class ARI(object):
+
+class ARI(APIHandler):
     def __init__(self, config: dict, queue_msg_asterisk: list, app: str):
         self._config = config
         self._host = self._config['asterisk_host']
@@ -15,6 +17,7 @@ class ARI(object):
         self._uri = f"ws://{self._host}:{self._port}/ari/events?api_key={self._login}:{self._password}&app={app}"
         self._cnt_fail = 0
         self._queue_msg = queue_msg_asterisk
+        super().__init__()
 
     async def connect(self):
         logger.debug(f'ARI try connect ws://{self._host}:{self._port}')

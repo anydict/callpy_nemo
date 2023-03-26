@@ -7,6 +7,7 @@ from loguru import logger
 from src.ari.ari import ARI
 from src.config import Config
 from src.dialer import Dialer
+from src.dialplan import Dialplan
 from src.lead import Lead
 
 logger.add("logs/loguru.log", rotation="1 day")
@@ -28,12 +29,13 @@ async def main():
     logger.info(f"Release: {uname.release}")
     logger.info(f"Machine: {uname.machine}")
 
-    dial_plans = {}
+    dial_plans: {}
     queue_msg_asterisk = []
     queue_lead = []
 
-    with open('/opt/scripts/callpy_nemo/src/dialplan_dialog.json', "r") as dial_plan:
-        dial_plans['redir1_end8'] = json.load(dial_plan)
+    with open('/opt/scripts/callpy_nemo/src/dialplan_dialog.json', "r") as dial_plan_file:
+        dial_plan = Dialplan(json.load(dial_plan_file))
+        dial_plans = {'redir1_end8': dial_plan}
 
     with open('/opt/scripts/callpy_nemo/src/leads.json', "r") as lead_json:
         lead = Lead(json.load(lead_json))
@@ -41,8 +43,14 @@ async def main():
 
     ari = ARI(cfg.config, queue_msg_asterisk, 'anydict')
     asyncio.create_task(ari.connect())
+    peers = await ari.get_peers()
+    logger.info(f"Peers: {peers}")
 
-    dialer = Dialer(cfg.config, queue_msg_asterisk, queue_lead, dial_plans)
+    dialer = Dialer(ari=ari,
+                    config=cfg.config,
+                    queue_msg_asterisk=queue_msg_asterisk,
+                    queue_lead=queue_lead,
+                    dial_plans=dial_plans)
     asyncio.create_task(dialer.start_dialer())
     asyncio.create_task(dialer.run_message_pump_for_rooms())
 
