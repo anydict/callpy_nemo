@@ -7,5 +7,5 @@ class Chan(object):
     def start_chan(self):
         pass
 
-    async def send_message_in_chans(self):
+    async def run_message_pump_for_chans(self):
         pass

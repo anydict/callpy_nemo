@@ -1,0 +1,76 @@
+{
+  "tag": "room",
+  "type": "room",
+  "status": "init",
+  "content": [
+    {
+      "type": "bridge",
+      "trigger_tag": "room",
+      "trigger_status": "ready",
+      "tag": "bridge_main",
+      "status": "init",
+      "content": [
+        {
+          "type": "chan_outbound",
+          "trigger_tag": "bridge_main",
+          "trigger_status": "ready",
+          "tag": "clerk",
+          "status": "init"
+        },
+        {
+          "type": "chan_outbound",
+          "trigger_tag": "clerk",
+          "trigger_status": "answer",
+          "tag": "client",
+          "status": "init"
+        }
+      ]
+    },
+    {
+      "type": "bridge",
+      "trigger_tag": "clerk",
+      "trigger_status": "ready",
+      "tag": "bridge_spy_clerk",
+      "status": "init",
+      "content": [
+        {
+          "type": "chan_spy",
+          "trigger_tag": "bridge_spy_clerk",
+          "trigger_status": "ready",
+          "tag": "spy_clerk",
+          "status": "init"
+        },
+        {
+          "type": "chan_em",
+          "trigger_tag": "spy_clerk",
+          "trigger_status": "ready",
+          "tag": "em_spy_clerk",
+          "status": "init"
+        }
+      ]
+    },
+    {
+      "type": "bridge",
+      "trigger_tag": "",
+      "trigger_status": "",
+      "tag": "bridge_spy_client",
+      "status": "init",
+      "content": [
+        {
+          "type": "chan_spy",
+          "trigger_tag": "bridge_spy_clerk",
+          "trigger_status": "ready",
+          "tag": "spy_client",
+          "status": "init"
+        },
+        {
+          "type": "chan_em",
+          "trigger_tag": "spy_client",
+          "trigger_status": "ready",
+          "tag": "em_spy_client",
+          "status": "init"
+        }
+      ]
+    }
+  ]
+}

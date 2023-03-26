@@ -1,16 +1,17 @@
 import asyncio
+import json
 
 import websockets
 from loguru import logger
 
 
 class ARI(object):
-    def __init__(self, cfg: dict, queue_msg_asterisk: list, app: str):
-        self._cfg = cfg
-        self._host = self._cfg['asterisk_host']
-        self._port = self._cfg['asterisk_port']
-        self._login = self._cfg['asterisk_login']
-        self._password = self._cfg['asterisk_password']
+    def __init__(self, config: dict, queue_msg_asterisk: list, app: str):
+        self._config = config
+        self._host = self._config['asterisk_host']
+        self._port = self._config['asterisk_port']
+        self._login = self._config['asterisk_login']
+        self._password = self._config['asterisk_password']
         self._uri = f"ws://{self._host}:{self._port}/ari/events?api_key={self._login}:{self._password}&app={app}"
         self._cnt_fail = 0
         self._queue_msg = queue_msg_asterisk
@@ -28,9 +29,12 @@ class ARI(object):
         logger.info('ARI ws exist and infinite listener started')
 
         async for websocket in websockets.connect(self._uri):
+            if not self._config['alive']:
+                break
             try:
                 msg = await websocket.recv()
-                self._queue_msg.append(msg)
+                self._queue_msg.append(json.loads(msg))
+
                 logger.debug(len(self._queue_msg))
             except websockets.ConnectionClosed as e:
                 logger.error(f'ConnectionClosed e={e}')
@@ -41,10 +45,13 @@ class ARI(object):
             except Exception as e:
                 logger.error(f'Exception e={e}')
 
+        if self._config['alive']:
+            await self.connect()
+
 
 if __name__ == "__main__":
     queue = []
-    config = {"asterisk_host": "127.0.0.1", "asterisk_port": "8088",
-              "asterisk_login": "asterisk", "asterisk_password": "asterisk"}
-    q = ARI(config, queue, 'test')
-    asyncio.run(q.connect())
+    dict_config = {"asterisk_host": "127.0.0.1", "asterisk_port": "8088",
+                   "asterisk_login": "asterisk", "asterisk_password": "asterisk"}
+    a = ARI(dict_config, queue, 'test')
+    asyncio.run(a.connect())

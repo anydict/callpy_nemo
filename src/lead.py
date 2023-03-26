@@ -3,6 +3,7 @@ import re
 
 class Lead(object):
     def __init__(self, params: dict):
+        self.lead_id: str = str(params.get('lead_id', ''))
         self.phone: str = str(params.get('phone', ''))
         self.phone_prefix: str = str(params.get('phone_prefix', ''))
         self.callerid: str = str(params.get('callerid', ''))
