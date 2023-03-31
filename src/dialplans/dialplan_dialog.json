@@ -1,0 +1,139 @@
+{
+  "tag": "room",
+  "type": "room",
+  "status": "init",
+  "timeout": 600,
+  "triggers": [
+    {
+      "trigger_tag": "bridge_main",
+      "trigger_status": "destroy",
+      "action": "stop"
+    },
+    {
+      "trigger_tag": "client",
+      "trigger_status": "destroy",
+      "action": "stop"
+    },
+    {
+      "trigger_tag": "specialist",
+      "trigger_status": "destroy",
+      "action": "stop"
+    }
+  ],
+  "content": [
+    {
+      "type": "bridge",
+      "triggers": [
+        {
+          "trigger_tag": "room",
+          "trigger_status": "ready",
+          "action": "start"
+        }
+      ],
+      "tag": "bridge_main",
+      "status": "init",
+      "content": [
+        {
+          "type": "chan_outbound",
+          "triggers": [
+            {
+              "trigger_tag": "bridge_main",
+              "trigger_status": "ready",
+              "action": "start"
+            }
+          ],
+          "tag": "specialist",
+          "status": "init"
+        },
+        {
+          "type": "chan_outbound",
+          "triggers": [
+            {
+              "trigger_tag": "specialist",
+              "trigger_status": "answer",
+              "action": "start"
+            }
+          ],
+          "tag": "client",
+          "status": "init"
+        }
+      ]
+    },
+    {
+      "type": "bridge",
+      "triggers": [
+        {
+          "trigger_tag": "specialist",
+          "trigger_status": "ready",
+          "action": "start"
+        }
+      ],
+      "tag": "bridge_spy_specialist",
+      "status": "init",
+      "content": [
+        {
+          "type": "chan_spy",
+          "triggers": [
+            {
+              "trigger_tag": "bridge_spy_specialist",
+              "trigger_status": "ready",
+              "action": "start"
+            }
+          ],
+          "tag": "spy_specialist",
+          "status": "init"
+        },
+        {
+          "type": "chan_em",
+          "triggers": [
+            {
+              "trigger_tag": "spy_specialist",
+              "trigger_status": "ready",
+              "action": "start"
+            }
+          ],
+          "tag": "em_spy_specialist",
+          "status": "init"
+        }
+      ]
+    },
+    {
+      "type": "bridge",
+      "triggers": [
+        {
+          "trigger_tag": "client",
+          "trigger_status": "ready",
+          "action": "start"
+        }
+      ],
+      "tag": "bridge_spy_client",
+      "status": "init",
+      "content": [
+        {
+          "type": "chan_spy",
+          "triggers": [
+            {
+              "trigger_tag": "bridge_spy_specialist",
+              "trigger_status": "ready",
+              "action": "start"
+            }
+          ],
+          "tag": "spy_client",
+          "status": "init"
+        },
+        {
+          "type": "chan_em",
+          "triggers": [
+            {
+              "trigger_tag": "spy_client",
+              "trigger_status": "ready",
+              "action": "start"
+            }
+          ],
+          "tag": "em_spy_client",
+          "status": "init"
+        }
+      ]
+    }
+  ]
+}

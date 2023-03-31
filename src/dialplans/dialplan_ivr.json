@@ -1,0 +1,197 @@
+{
+  "name": "redir1_end8",
+  "tag": "room",
+  "type": "room",
+  "status": "init",
+  "timeout": 600,
+  "triggers": [
+    {
+      "trigger_tag": "bridge_main",
+      "trigger_status": "destroy",
+      "action": "stop"
+    },
+    {
+      "trigger_tag": "client",
+      "trigger_status": "destroy",
+      "action": "stop"
+    },
+    {
+      "trigger_tag": "specialist",
+      "trigger_status": "destroy",
+      "action": "stop"
+    },
+    {
+      "trigger_tag": "clip_button_1",
+      "trigger_status": "finish",
+      "action": "stop"
+    },
+    {
+      "trigger_tag": "clip_button_8",
+      "trigger_status": "finish",
+      "action": "stop"
+    }
+  ],
+  "content": [
+    {
+      "type": "bridge",
+      "triggers": [
+        {
+          "trigger_tag": "room",
+          "trigger_status": "ready",
+          "action": "start"
+        }
+      ],
+      "tag": "bridge_main",
+      "status": "init",
+      "content": [
+        {
+          "type": "chan_outbound",
+          "triggers": [
+            {
+              "trigger_tag": "specialist",
+              "trigger_status": "answer",
+              "action": "start"
+            }
+          ],
+          "tag": "client",
+          "status": "init",
+          "content": [
+            {
+              "type": "clip",
+              "wait_before": 1,
+              "wait_after": 6,
+              "triggers": [
+                {
+                  "trigger_tag": "client",
+                  "trigger_status": "answer",
+                  "action": "start"
+                }
+              ],
+              "tag": "ivr_clip",
+              "status": "init",
+              "repeat": 1
+            },
+            {
+              "type": "clip",
+              "wait_before": 1,
+              "wait_after": 1,
+              "triggers": [
+                {
+                  "trigger_tag": "client",
+                  "trigger_status": "dtmf_1",
+                  "action": "start"
+                }
+              ],
+              "tag": "clip_button_1",
+              "status": "init",
+              "repeat": 1
+            },
+            {
+              "type": "clip",
+              "wait_before": 1,
+              "wait_after": 1,
+              "triggers": [
+                {
+                  "trigger_tag": "client",
+                  "trigger_status": "dtmf_8",
+                  "action": "start"
+                }
+              ],
+              "tag": "clip_button_8",
+              "status": "init",
+              "repeat": 1
+            }
+          ]
+        },
+        {
+          "type": "chan_outbound",
+          "triggers": [
+            {
+              "trigger_tag": "clip_button_1",
+              "trigger_status": "finish",
+              "action": "start"
+            }
+          ],
+          "tag": "specialist",
+          "status": "init"
+        }
+      ]
+    },
+    {
+      "type": "bridge",
+      "triggers": [
+        {
+          "trigger_tag": "specialist",
+          "trigger_status": "ready",
+          "action": "start"
+        }
+      ],
+      "tag": "bridge_spy_specialist",
+      "status": "init",
+      "content": [
+        {
+          "type": "chan_spy",
+          "triggers": [
+            {
+              "trigger_tag": "bridge_spy_specialist",
+              "trigger_status": "ready",
+              "action": "start"
+            }
+          ],
+          "tag": "spy_specialist",
+          "status": "init"
+        },
+        {
+          "type": "chan_em",
+          "triggers": [
+            {
+              "trigger_tag": "spy_specialist",
+              "trigger_status": "ready",
+              "action": "start"
+            }
+          ],
+          "tag": "em_spy_specialist",
+          "status": "init"
+        }
+      ]
+    },
+    {
+      "type": "bridge",
+      "triggers": [
+        {
+          "trigger_tag": "client",
+          "trigger_status": "ready",
+          "action": "start"
+        }
+      ],
+      "tag": "bridge_spy_client",
+      "status": "init",
+      "content": [
+        {
+          "type": "spy",
+          "triggers": [
+            {
+              "trigger_tag": "bridge_spy_specialist",
+              "trigger_status": "ready",
+              "action": "start"
+            }
+          ],
+          "tag": "spy_client",
+          "status": "init"
+        },
+        {
+          "type": "external_media",
+          "triggers": [
+            {
+              "trigger_tag": "spy_client",
+              "trigger_status": "ready",
+              "action": "start"
+            }
+          ],
+          "tag": "em_spy_client",
+          "status": "init"
+        }
+      ]
+    }
+  ]
+}

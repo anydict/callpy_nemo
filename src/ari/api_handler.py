@@ -1,22 +1,22 @@
 import aiohttp
-from aiohttp import ClientSession
 from loguru import logger
 
 
 class APIHandler(object):
-    _host = '127.0.0.1'
-    _port = 8088
-    _url = f'http://{_host}:{_port}/ari'
-    _login = 'asterisk'
-    _password = 'asterisk'
-    _session: ClientSession
-
-    def __init__(self):
-        auth = aiohttp.BasicAuth(login=str(self._login), password=str(self._password), encoding='utf-8')
+    def __init__(self, host: str = '127.0.0.1', port: int = 8088,
+                 login: str = 'asterisk', password: str = 'asterisk', app: str = 'test'):
+        self._app = app
+        self._host = host
+        self._port = port
+        self._login = login
+        self._password = password
+        self._url = f'http://{host}:{port}/ari'
+        auth = aiohttp.BasicAuth(login=str(login), password=str(password), encoding='utf-8')
         self._session = aiohttp.ClientSession(auth=auth)
+        self.logger = logger.bind(object_id=f'APIHandler')
 
     async def send(self, url: str, method: str, body: dict):
-        logger.debug(f'send url={url} meth={method}, body={body}')
+        self.logger.debug(f'send url={url} meth={method}, body={body}')
         response = {'http_code': 503}
         try:
             resp = await self._session.request(method=method, url=url, data=body)
@@ -28,9 +28,10 @@ class APIHandler(object):
                 response.update({'data': json_res, 'http_code': resp.status})
         except Exception as e:
             response.update({'msg': e})
-            logger.error(response)
+            self.logger.error(response)
+            self.logger.exception(e)
 
-        logger.debug(f'response={response}')
+        self.logger.debug(f'response={response}')
         return response
 
     async def get_peers(self):
@@ -81,8 +82,9 @@ class APIHandler(object):
     async def get_sound_detail(self, sound_id):
         return await self.send(f'{self._url}/sounds/{sound_id}', 'GET', {})
 
-    async def subscription(self, app: str, event_source: str = 'channel:,bridge:,endpoint:'):
-        res = await self.send(f'{self._url}/applications/{app}/subscription', 'POST', {'eventSource': event_source})
+    async def subscription(self, event_source: str = 'channel:,bridge:,endpoint:'):
+        res = await self.send(f'{self._url}/applications/{self._app}/subscription',
+                              'POST', {'eventSource': event_source})
         return res
 
     async def create_bridge(self, bridge_id: str, name: str = ''):
@@ -90,6 +92,12 @@ class APIHandler(object):
         res = await self.send(f'{self._url}/bridges', 'POST', {'type': 'mixing', 'bridgeId': bridge_id, 'name': name})
         return res
 
-    async def custom_event(self, event_name: str, app: str, source: str = 'bridge:bridge_main#222'):
-        res = await self.send(f'{self._url}/events/user/{event_name}', 'POST', {'application': app, 'source': source})
+    async def create_chan(self, chan_id: str, endpoint: str):
+        res = await self.send(f'{self._url}/channels/create',
+                              'POST', {'channelId': chan_id, 'endpoint': endpoint, 'app': self._app})
+        return res
+
+    async def custom_event(self, event_name: str, source: str):
+        res = await self.send(f'{self._url}/events/user/{event_name}',
+                              'POST', {'application': self._app, 'source': source})
         return res

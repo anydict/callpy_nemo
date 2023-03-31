@@ -5,15 +5,13 @@ from loguru import logger
 
 from src.ari.ari import ARI
 from src.bridge import Bridge
-from src.dialplan import Dialplan
+from src.config import Config
+from src.dataclasses.dialplan import Dialplan
+from src.dataclasses.trigger_event import TriggerEvent
 from src.lead import Lead
 
 
 class Room(object):
-    bridges: list[Bridge] = []
-    queue_msg_room = []
-    tags_statuses = {}
-
     # {
     #     "room":
     #         {
@@ -27,63 +25,75 @@ class Room(object):
     #         }
     # }
 
-    def __init__(self, ari: ARI, config: dict, lead: Lead, dial_plan: Dialplan):
-        self.ari = ari
-        self.config = config
-        self.lead_id = lead.lead_id
-        self.lead = lead
-        self.tag = dial_plan.tag
-        self.dial_plan: Dialplan = dial_plan
-        self.bridges_plan: list[Dialplan] = self.dial_plan.content
-        self.room_id = f'{self.tag}#{lead.lead_id}'
-        self.add_status_room(dial_plan.status)
+    def __init__(self, ari: ARI, config: Config, lead: Lead, dial_plan: Dialplan):
+        self.bridges: list[Bridge] = []
+        self.queue_msg_room: list[TriggerEvent] = []
+        self.tags_statuses = {}
 
-    def add_status_room(self, new_status):
-        if self.tag not in self.tags_statuses:
-            self.tags_statuses[self.tag] = {}
-        self.tags_statuses[self.tag][new_status] = datetime.now().isoformat()
+        self.ari: ARI = ari
+        self.config: Config = config
+        self.lead_id: str = lead.lead_id
+        self.lead: Lead = lead
+        self.tag: str = dial_plan.tag
+        self.room_plan: Dialplan = dial_plan
+        self.bridges_plan: list[Dialplan] = self.room_plan.content
+        self.room_id: str = f'{self.tag}-lead_id-{lead.lead_id}'
 
-    async def append_queue_msg_room(self, msg: dict):
+        self.log = logger.bind(object_id=self.room_id)
+        asyncio.create_task(self.add_tag_status(tag=self.tag, new_status=dial_plan.status))
+
+    async def add_tag_status(self, tag: str, new_status: str):
+        self.log.info(f' tag={tag} new status={new_status} ')
+        if tag not in self.tags_statuses:
+            self.tags_statuses[tag] = {}
+        self.tags_statuses[tag][new_status] = datetime.now().isoformat()
+        await self.check_trigger_room()
+        await self.check_trigger_bridges()
+        await asyncio.sleep(0)
+
+    async def append_queue_msg_room(self, msg: TriggerEvent):
         self.queue_msg_room.append(msg)
         await asyncio.sleep(0)
 
     async def start_room(self):
-        logger.info('start_dialer')
-        self.add_status_room('ready')
-        self.add_status_room('test')
-        await self.check_trigger_bridges()
+        self.log.info('start_room')
+        await self.add_tag_status(tag=self.tag, new_status='ready')
 
-        while self.config['alive']:
+        while self.config.alive:
             await asyncio.sleep(5)
+
+    async def check_trigger_room(self):
+        for trigger in [trg for trg in self.room_plan.triggers if trg.action == 'stop']:
+            if trigger.trigger_status in self.tags_statuses.get(trigger.trigger_tag, []):
+                self.log.info(f' need destroy')
+                pass
 
     async def check_trigger_bridges(self):
         for bridge_plan in self.bridges_plan:
+
             if bridge_plan.tag in [bridge.tag for bridge in self.bridges]:
-                continue
-            if bridge_plan.trigger_tag in self.tags_statuses:
-                bridge_status = self.tags_statuses.get(bridge_plan.trigger_tag)
-                if bridge_plan.trigger_status in bridge_status:
-                    bridge = Bridge(ari=self.ari,
-                                    config=self.config,
-                                    lead_id=self.lead_id,
-                                    bridge_plan=bridge_plan,
-                                    tags_statuses=self.tags_statuses)
-                    self.bridges.append(bridge)
-                    asyncio.create_task(bridge.start_bridge())
+                for trigger in [trg for trg in bridge_plan.triggers if trg.action == 'stop']:
+                    if trigger.trigger_status in self.tags_statuses.get(trigger.trigger_tag, []):
+                        pass  # destroy bridge
+            else:
+                for trigger in [trg for trg in bridge_plan.triggers if trg.action == 'start']:
+                    if trigger.trigger_status in self.tags_statuses.get(trigger.trigger_tag, []):
+                        bridge = Bridge(ari=self.ari,
+                                        config=self.config,
+                                        room=self,
+                                        bridge_plan=bridge_plan)
+                        self.bridges.append(bridge)
+                        asyncio.create_task(bridge.start_bridge())
+
+        for bridge in self.bridges:
+            await bridge.check_trigger_chans()
 
     async def run_room_message_pump(self):
-        logger.info('run_message_pump_for_bridges')
-        while self.config['alive']:
+        self.log.info('run_room_message_pump')
+        while self.config.alive:
             if len(self.queue_msg_room) == 0:
-                logger.debug(f'tags_statuses={self.tags_statuses}')
-                await asyncio.sleep(5)
+                await asyncio.sleep(0.1)
                 continue
 
             msg = self.queue_msg_room.pop()
-
-            for bridge in self.bridges:
-                if 1 == 1:
-                    await bridge.append_queue_msg_bridge(msg)
-
-            logger.debug(f'run_room_message_pump msg={msg}')
-            logger.debug(f'st={self.tags_statuses} phone={self.lead.phone}')
+            self.log.debug(f'msg={msg}')

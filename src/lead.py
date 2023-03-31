@@ -14,7 +14,7 @@ class Lead(object):
         self.def_code: str = str(params.get('def_code', ''))
         self.operator_id: str = str(params.get('operator_id', ''))
         self.id_request: str = str(params.get('id_request', ''))
-        self.check_params()
+        # self.check_params()
 
     def check_params(self):
         if re.match(r"^[^0-9]+$", self.phone) or len(self.phone) == 0:
