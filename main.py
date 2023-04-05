@@ -48,11 +48,11 @@ async def main():
     queue_msg_asterisk: list[TriggerEvent] = []
     queue_lead = []
 
-    with open('/opt/scripts/callpy_nemo/src/dialplans/dialplan_dialog.json', "r") as dial_plan_file:
+    with open('src/dialplans/dialplan_dialog.json', "r") as dial_plan_file:
         dial_plan = Dialplan(params=json.load(dial_plan_file), app='anydict')
         dial_plans = {'redir1_end8': dial_plan}
 
-    with open('/opt/scripts/callpy_nemo/src/leads.json', "r") as lead_json:
+    with open('src/leads.json', "r") as lead_json:
         lead = Lead(json.load(lead_json))
         queue_lead.append(lead)
 
