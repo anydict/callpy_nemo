@@ -9,7 +9,7 @@ class ChanOutbound(Chan):
 
     async def start_chan(self):
         logger.info('start_chan')
-        self.add_status_chan('ready')
+        self.add_status_chan('READY')
         # await self.check_trigger_chans()
         while self.config.alive:
             await asyncio.sleep(4)

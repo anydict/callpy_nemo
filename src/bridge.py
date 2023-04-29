@@ -27,6 +27,7 @@ class Bridge(object):
         self.log.debug('object has died', lead_id=self.lead_id, tag=self.tag)
 
     async def add_status_bridge(self, new_status):
+        new_status = new_status.upper()  # precaution
         await self.room.add_tag_status(self.tag, new_status)
 
     async def check_trigger_chans(self):
@@ -54,7 +55,7 @@ class Bridge(object):
         try:
             self.log.info('start_bridge')
             await self.ari.create_bridge(bridge_id=self.bridge_id)
-            await self.add_status_bridge('ready')
+            await self.add_status_bridge('API_START')
             while self.config.alive:
                 # self.log.info('start_bridge alive')
                 # await self.ari.custom_event('BridgeCreated', 'anydict')

@@ -15,7 +15,7 @@ class Chan(object):
         self.ari = ari
         self.config = config
         self.room = room
-        self.lead_id = room.lead_id
+        self.lead_id = self.room.lead_id
         self.clips_plan: list[Dialplan] = chan_plan.content
         self.tag = chan_plan.tag
         self.chan_id = f'{self.tag}-id-{self.lead_id}'
@@ -43,7 +43,14 @@ class Chan(object):
                     pass
 
     async def start_chan(self):
-        await self.ari.create_chan(chan_id=self.chan_id, endpoint='SIP/myself')
-        await self.add_status_chan('ready')
-        while self.config.alive:
-            await asyncio.sleep(4)
+        self.log.info('start_chan')
+        # await self.ari.create_chan(chan_id=self.chan_id, endpoint='SIP/client_phone/client_phone', callerid='123')
+        api_response = await self.ari.create_chan(chan_id=self.chan_id, endpoint='SIP/asterisk_docker-1/123',
+                                                  callerid='123')
+        if api_response.get('http_code') == 200:
+            await self.ari.subscription(event_source=f'channel:{self.chan_id}')
+        else:
+            await self.add_status_chan('api_error')
+            await self.add_status_chan('stop')
+        # while self.config.alive:
+        #     await asyncio.sleep(4)

@@ -1,23 +1,23 @@
 {
   "tag": "room",
   "type": "room",
-  "status": "init",
+  "status": "INIT",
   "timeout": 600,
   "triggers": [
     {
       "trigger_tag": "bridge_main",
-      "trigger_status": "destroy",
-      "action": "stop"
+      "trigger_status": "DESTROY",
+      "action": "terminate"
     },
     {
       "trigger_tag": "client",
-      "trigger_status": "destroy",
-      "action": "stop"
+      "trigger_status": "DESTROY",
+      "action": "terminate"
     },
     {
       "trigger_tag": "specialist",
-      "trigger_status": "destroy",
-      "action": "stop"
+      "trigger_status": "DESTROY",
+      "action": "terminate"
     }
   ],
   "content": [
@@ -26,36 +26,41 @@
       "triggers": [
         {
           "trigger_tag": "room",
-          "trigger_status": "ready",
+          "trigger_status": "READY",
           "action": "start"
+        },
+        {
+          "trigger_tag": "specialist",
+          "trigger_status": "STOP",
+          "action": "terminate"
         }
       ],
       "tag": "bridge_main",
-      "status": "init",
+      "status": "INIT",
       "content": [
         {
           "type": "chan_outbound",
           "triggers": [
             {
               "trigger_tag": "bridge_main",
-              "trigger_status": "ready",
+              "trigger_status": "READY",
               "action": "start"
             }
           ],
           "tag": "specialist",
-          "status": "init"
+          "status": "INIT"
         },
         {
           "type": "chan_outbound",
           "triggers": [
             {
               "trigger_tag": "specialist",
-              "trigger_status": "answer",
+              "trigger_status": "ANSWER",
               "action": "start"
             }
           ],
           "tag": "client",
-          "status": "init"
+          "status": "INIT"
         }
       ]
     },
@@ -64,36 +69,36 @@
       "triggers": [
         {
           "trigger_tag": "specialist",
-          "trigger_status": "ready",
+          "trigger_status": "READY",
           "action": "start"
         }
       ],
       "tag": "bridge_spy_specialist",
-      "status": "init",
+      "status": "INIT",
       "content": [
         {
           "type": "chan_spy",
           "triggers": [
             {
               "trigger_tag": "bridge_spy_specialist",
-              "trigger_status": "ready",
+              "trigger_status": "READY",
               "action": "start"
             }
           ],
           "tag": "spy_specialist",
-          "status": "init"
+          "status": "INIT"
         },
         {
           "type": "chan_em",
           "triggers": [
             {
               "trigger_tag": "spy_specialist",
-              "trigger_status": "ready",
+              "trigger_status": "READY",
               "action": "start"
             }
           ],
           "tag": "em_spy_specialist",
-          "status": "init"
+          "status": "INIT"
         }
       ]
     },
@@ -102,36 +107,36 @@
       "triggers": [
         {
           "trigger_tag": "client",
-          "trigger_status": "ready",
+          "trigger_status": "READY",
           "action": "start"
         }
       ],
       "tag": "bridge_spy_client",
-      "status": "init",
+      "status": "INIT",
       "content": [
         {
           "type": "chan_spy",
           "triggers": [
             {
               "trigger_tag": "bridge_spy_specialist",
-              "trigger_status": "ready",
+              "trigger_status": "READY",
               "action": "start"
             }
           ],
           "tag": "spy_client",
-          "status": "init"
+          "status": "INIT"
         },
         {
           "type": "chan_em",
           "triggers": [
             {
               "trigger_tag": "spy_client",
-              "trigger_status": "ready",
+              "trigger_status": "READY",
               "action": "start"
             }
           ],
           "tag": "em_spy_client",
-          "status": "init"
+          "status": "INIT"
         }
       ]
     }

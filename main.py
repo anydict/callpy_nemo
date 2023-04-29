@@ -16,12 +16,11 @@ logger.configure(extra={"object_id": "None"})  # Default values
 logger.remove()
 
 my_format = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> " \
-            "<cyan>[{extra[object_id]}]</cyan>" \
             " [<level>{level}</level>] " \
+            "<cyan>[{extra[object_id]}]</cyan>" \
             "<magenta>{name}</magenta>:<magenta>{function}</magenta>:<cyan>{line}</cyan>" \
             " - <level>{message}</level>"
 
-# my_format = "{time} - [{extra[tag]}-id-{extra[lead_id]}] - {level} - {message}"
 logger.add(sys.stdout, level="DEBUG", format=my_format, colorize=True)
 logger.add("src/logs/callpy_nemo.log", rotation="1 day", format=my_format, )
 
@@ -56,18 +55,10 @@ async def main():
         lead = Lead(json.load(lead_json))
         queue_lead.append(lead)
 
-    ari = ARI(config, queue_msg_asterisk, 'anydict')
-    await ari.connect()
-    peers = await ari.get_peers()
-    logger.info(f"Peers: {peers}")
-    subscribe = await ari.subscription()
-    logger.info(f"Subscribe: {subscribe}")
-
-    dialer = Dialer(ari=ari,
-                    config=config,
-                    queue_msg_asterisk=queue_msg_asterisk,
+    dialer = Dialer(config=config,
                     queue_lead=queue_lead,
-                    dial_plans=dial_plans)
+                    dial_plans=dial_plans,
+                    app='anydict')
     asyncio.create_task(dialer.start_dialer())
     asyncio.create_task(dialer.run_message_pump_for_rooms())
 

@@ -13,25 +13,29 @@ class APIHandler(object):
         self._url = f'http://{host}:{port}/ari'
         auth = aiohttp.BasicAuth(login=str(login), password=str(password), encoding='utf-8')
         self._session = aiohttp.ClientSession(auth=auth)
-        self.logger = logger.bind(object_id=f'APIHandler')
+        self.logapi = logger.bind(object_id=f'APIHandler')
 
     async def send(self, url: str, method: str, body: dict):
-        self.logger.debug(f'send url={url} meth={method}, body={body}')
+        self.logapi.debug(f'send url={url} meth={method}, body={body}')
         response = {'http_code': 503}
         try:
             resp = await self._session.request(method=method, url=url, data=body)
             async with resp:
                 if resp.content_type == 'application/json':
-                    json_res = await resp.json()
+                    json_response = await resp.json()
                 else:
-                    json_res = {}
-                response.update({'data': json_res, 'http_code': resp.status})
+                    json_response = {}
+                if 'error' in json_response:
+                    response.update({'error': json_response['error']})
+                    self.logapi.warning(f'json_response={json_response}')
+                else:
+                    response.update({'json_response': json_response, 'http_code': resp.status})
         except Exception as e:
-            response.update({'msg': e})
-            self.logger.error(response)
-            self.logger.exception(e)
+            response.update({'error': e})
+            self.logapi.error(response)
+            self.logapi.exception(e)
 
-        self.logger.debug(f'response={response}')
+        self.logapi.debug(f'response={response}')
         return response
 
     async def get_peers(self):
@@ -92,9 +96,12 @@ class APIHandler(object):
         res = await self.send(f'{self._url}/bridges', 'POST', {'type': 'mixing', 'bridgeId': bridge_id, 'name': name})
         return res
 
-    async def create_chan(self, chan_id: str, endpoint: str):
-        res = await self.send(f'{self._url}/channels/create',
-                              'POST', {'channelId': chan_id, 'endpoint': endpoint, 'app': self._app})
+    async def create_chan(self, chan_id: str, endpoint: str, callerid: str):
+        res = await self.send(f'{self._url}/channels/{chan_id}',
+                              'POST', {'channelId': chan_id,
+                                       'endpoint': endpoint,
+                                       'app': self._app,
+                                       "callerId": callerid})
         return res
 
     async def custom_event(self, event_name: str, source: str):

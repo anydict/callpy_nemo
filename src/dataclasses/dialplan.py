@@ -15,7 +15,7 @@ class Dialplan(object):
         self.name: str = params.get('name', 'unknown')
         self.tag: str = params.get('tag', 'unknown')
         self.type: str = params.get('type', 'unknown')
-        self.status: str = params.get('status', 'init')
+        self.status: str = params.get('status', 'INIT')
 
         list_trigger = []
         if params.get('triggers', None):
