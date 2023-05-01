@@ -11,10 +11,11 @@ from src.dataclasses.dialplan import Dialplan
 class Chan(object):
     clips: list[Clip] = []
 
-    def __init__(self, ari: ARI, config: Config, room, chan_plan: Dialplan):
+    def __init__(self, ari: ARI, config: Config, room, bridge_id: str, chan_plan: Dialplan):
         self.ari = ari
         self.config = config
         self.room = room
+        self.bridge_id = bridge_id
         self.lead_id = self.room.lead_id
         self.clips_plan: list[Dialplan] = chan_plan.content
         self.tag = chan_plan.tag
@@ -44,13 +45,23 @@ class Chan(object):
 
     async def start_chan(self):
         self.log.info('start_chan')
-        # await self.ari.create_chan(chan_id=self.chan_id, endpoint='SIP/client_phone/client_phone', callerid='123')
-        api_response = await self.ari.create_chan(chan_id=self.chan_id, endpoint='SIP/asterisk_docker-1/123',
-                                                  callerid='123')
-        if api_response.get('http_code') == 200:
+        if self.tag == 'specialist':
+            create_chan_response = await self.ari.create_chan(chan_id=self.chan_id,
+                                                              endpoint='SIP/asterisk_extapi-1/321',
+                                                              callerid='321')
+        else:
+            create_chan_response = await self.ari.create_chan(chan_id=self.chan_id,
+                                                              endpoint='SIP/asterisk_extapi-1/123',
+                                                              callerid='123')
+        if create_chan_response.get('http_code') == 200:
             await self.ari.subscription(event_source=f'channel:{self.chan_id}')
+            chan2bridge_response = await self.ari.add_channel_to_bridge(bridge_id=self.bridge_id,
+                                                                        chan_id=self.chan_id)
+            self.log.info(chan2bridge_response)
+
+            dial_chan_response = await self.ari.dial_chan(chan_id=self.chan_id)
+            self.log.info(dial_chan_response)
+
         else:
             await self.add_status_chan('api_error')
             await self.add_status_chan('stop')
-        # while self.config.alive:
-        #     await asyncio.sleep(4)

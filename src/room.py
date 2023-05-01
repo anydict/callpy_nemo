@@ -41,25 +41,43 @@ class Room(object):
         self.log = logger.bind(object_id=self.room_id)
         asyncio.create_task(self.add_tag_status(tag=self.tag, new_status=dial_plan.status))
 
-    async def add_tag_status(self, tag: str, new_status: str):
+    async def add_tag_status(self,
+                             tag: str,
+                             new_status: str,
+                             asterisk_time: str = "",
+                             trigger_time: str = "",
+                             value: str = ""):
         self.log.info(f' tag={tag} new status={new_status} ')
 
         if tag not in self.tags_statuses:
             self.tags_statuses[tag] = {}
 
         if self.tags_statuses[tag].get(new_status) is None:
-            self.tags_statuses[tag][new_status] = datetime.now().isoformat()
-            await self.check_trigger_room()
-            await self.check_trigger_bridges()
-            self.log.info('self.tags_statuses:')
-            self.log.info(self.tags_statuses)
+            self.tags_statuses[tag][new_status] = {
+                "asterisk_time": asterisk_time,
+                "trigger_time": trigger_time,
+                "add_status_time": datetime.now().isoformat(),
+                "value": value,
+                "rewrite": []
+            }
         else:
-            self.log.warning(f'This status={new_status} already exist for tag={tag}')
+            row_rewrite = {
+                "asterisk_time": asterisk_time,
+                "trigger_time": trigger_time,
+                "add_status_time": datetime.now().isoformat(),
+                "value": value
+            }
+            self.tags_statuses[tag][new_status]["rewrite"].append(row_rewrite)
+
+        await self.check_trigger_room()
+        await self.check_trigger_bridges()
+        self.log.info(self.tags_statuses)
+
         await asyncio.sleep(0)
 
     async def start_room(self):
         self.log.info('start_room')
-        await self.add_tag_status(tag=self.tag, new_status='READY')
+        await self.add_tag_status(tag=self.tag, new_status='ready')
 
         while self.config.alive:
             await asyncio.sleep(5)
@@ -92,5 +110,8 @@ class Room(object):
             await bridge.check_trigger_chans()
 
     async def trigger_event_handler(self, trigger_event: TriggerEvent):
-        self.log.debug(f'trigger_event={trigger_event}')
-        await self.add_tag_status(trigger_event.tag, trigger_event.status)
+        await self.add_tag_status(trigger_event.tag,
+                                  trigger_event.status,
+                                  trigger_event.asterisk_time,
+                                  trigger_event.trigger_time,
+                                  trigger_event.value)

@@ -8,6 +8,14 @@ from src.ari.api_handler import APIHandler
 from src.config import Config
 from src.dataclasses.trigger_event import TriggerEvent
 
+DISABLED_ASTERISK_EVENT_TYPES = [
+    "ChannelDialplan"
+]
+
+DISABLED_TRIGGER_EVENT_TYPES = [
+    "ChannelVarset#SIPCALLID"
+]
+
 
 class ARI(APIHandler):
     def __init__(self, config: Config, queue_trigger_events: list[TriggerEvent], app: str):
@@ -48,7 +56,14 @@ class ARI(APIHandler):
                     event_json = await ws.recv()
                     self.log.info(event_json)
                     try:
-                        self._queue_trigger_events.append(TriggerEvent(json.loads(event_json)))
+                        trigger_event = TriggerEvent(json.loads(event_json))
+                        if trigger_event.event_type in DISABLED_ASTERISK_EVENT_TYPES:
+                            self.log.info(f'skip trigger event with type={trigger_event.event_type}')
+                        elif trigger_event.status in DISABLED_TRIGGER_EVENT_TYPES:
+                            self.log.info(f'skip trigger event with status={trigger_event.status}')
+                        else:
+                            self._queue_trigger_events.append(trigger_event)
+
                     except Exception as e:
                         self.log.exception(e)
             except Exception as e:

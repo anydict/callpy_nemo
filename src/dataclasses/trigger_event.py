@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-UNKNOWN = 'unknown'
+UNKNOWN = 'UNKNOWN'
 
 
 @dataclass
@@ -39,78 +39,92 @@ class TriggerEvent:
     @staticmethod
     def get_tag_from_event(event: dict, event_type: str):
         tag = UNKNOWN
-        if event_type in ('ChannelDialplan', 'ChannelCreated', 'ChannelVarset'):
+        if event_type in ('ChannelDialplan',
+                          'ChannelCreated',
+                          'ChannelVarset',
+                          'ChannelDtmfReceived',
+                          'ChannelStateChange',
+                          'ChannelDestroyed',
+                          'ChannelHangupRequest',
+                          'StasisStart',
+                          'StasisEnd'):
             if '-id-' in event.get('channel').get('id'):
                 tag = event.get('channel').get('id').split('-id-')[0]
 
         elif event_type == 'Dial' and '-id-' in event.get('peer').get('id'):
             tag = event.get('peer').get('id').split('-id-')[0]
 
-        elif event_type == 'BridgeCreated' and '-id-' in event.get('bridge').get('id'):
-            tag = event.get('bridge').get('id').split('-id-')[0]
-
-        elif event_type == 'ChannelDtmfReceived' and '-id-' in event.get('channel').get('id'):
-            tag = event.get('channel').get('id').split('-id-')[0]
+        elif event_type in ('BridgeCreated', 'ChannelEnteredBridge', 'ChannelLeftBridge'):
+            if '-id-' in event.get('bridge').get('id'):
+                tag = event.get('bridge').get('id').split('-id-')[0]
 
         return tag
 
     @staticmethod
     def get_lead_id_from_event(event: dict, event_type: str):
         lead_id = UNKNOWN
-        if event_type in ('ChannelDialplan', 'ChannelCreated', 'ChannelVarset'):
+        if event_type in ('ChannelDialplan',
+                          'ChannelCreated',
+                          'ChannelVarset',
+                          'ChannelDtmfReceived',
+                          'ChannelStateChange',
+                          'ChannelDestroyed',
+                          'ChannelHangupRequest',
+                          'StasisStart',
+                          'StasisEnd'):
             if '-id-' in event.get('channel').get('id'):
                 lead_id = event.get('channel').get('id').split('-id-')[1]
 
         elif event_type == 'Dial' and '-id-' in event.get('peer').get('id'):
             lead_id = event.get('peer').get('id').split('-id-')[1]
 
-        elif event_type == 'BridgeCreated' and '-id-' in event.get('bridge').get('id'):
-            lead_id = event.get('bridge').get('id').split('-id-')[1]
-
-        elif event_type == 'ChannelDtmfReceived' and '-id-' in event.get('channel').get('id'):
-            lead_id = event.get('channel').get('id').split('-id-')[1]
+        elif event_type in ('BridgeCreated', 'ChannelEnteredBridge', 'ChannelLeftBridge'):
+            if '-id-' in event.get('bridge').get('id'):
+                lead_id = event.get('bridge').get('id').split('-id-')[1]
 
         return lead_id
 
     @staticmethod
     def get_status_from_event(event: dict, event_type: str):
-        status = UNKNOWN
-        if event_type == 'ChannelCreated':
-            status = 'READY'
+
+        if event_type == 'ChannelStateChange':
+            status = f'{event_type}#{event.get("channel").get("state")}'
 
         elif event_type == 'Dial':
-            if event.get("dialstatus", "") == "":
-                status = "AppDial1"
-            else:
-                status = event.get("dialstatus")
+            status = event_type
+            if len(event.get("dialstatus")) > 0:
+                status = f'{event_type}#{event.get("dialstatus")}'
+
+        elif event_type == 'ChannelEnteredBridge':
+            status = f'{event_type}#{event.get("channel").get("id")}'
+
+        elif event_type == 'ChannelLeftBridge':
+            status = f'{event_type}#{event.get("channel").get("id")}'
 
         elif event_type == 'ChannelVarset':
-            if event.get("variable") == 'STASISSTATUS':
-                status = f'VARSET_STASISSTATUS{event.get("value")}'
-            else:
-                status = f'VARSET_{event.get("variable")}'
-
-        elif event_type == 'ChannelDialplan':
-            status = event.get("dialplan_app")
-
-        elif event_type == 'BridgeCreated':
-            status = 'READY'
+            status = f'{event_type}#{event.get("variable")}'
 
         elif event_type == 'ChannelDtmfReceived':
-            status = f'dtmf_{event.get("digit")}'
+            status = f'{event_type}#{event.get("digit")}'
 
-        return status.upper()
+        else:
+            status = event_type
+
+        return status
 
     @staticmethod
     def get_value_from_event(event: dict, event_type: str):
         if event_type == 'ChannelDtmfReceived':
             return event.get("digit")
 
+        elif event_type in 'ChannelStateChange':
+            return event.get('channel').get('name')
+
         elif event_type in 'ChannelVarset':
-            return event.get("variable")
+            return event.get("value")
 
         elif event_type in 'Dial':
-            return event.get("dialstring")
+            return event.get('dialstring')
 
         else:
-            return None
+            return ""

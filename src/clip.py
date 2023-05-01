@@ -25,6 +25,6 @@ class Clip(object):
         await self.room.add_tag_status(self.tag, new_status)
 
     async def start_clip(self):
-        await self.add_status_clip('READY')
+        await self.add_status_clip('ready')
         while self.config.alive:
             await asyncio.sleep(4)

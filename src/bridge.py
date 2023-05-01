@@ -42,6 +42,7 @@ class Bridge(object):
                         chan = Chan(ari=self.ari,
                                     config=self.config,
                                     room=self.room,
+                                    bridge_id=self.bridge_id,
                                     chan_plan=chan_plan)
                         self.chans.append(chan)
                         asyncio.create_task(chan.start_chan())
@@ -55,7 +56,7 @@ class Bridge(object):
         try:
             self.log.info('start_bridge')
             await self.ari.create_bridge(bridge_id=self.bridge_id)
-            await self.add_status_bridge('API_START')
+            await self.add_status_bridge('API_start')
             while self.config.alive:
                 # self.log.info('start_bridge alive')
                 # await self.ari.custom_event('BridgeCreated', 'anydict')

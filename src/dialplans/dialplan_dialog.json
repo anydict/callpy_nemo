@@ -1,7 +1,7 @@
 {
   "tag": "room",
   "type": "room",
-  "status": "INIT",
+  "status": "init",
   "timeout": 600,
   "triggers": [
     {
@@ -26,7 +26,7 @@
       "triggers": [
         {
           "trigger_tag": "room",
-          "trigger_status": "READY",
+          "trigger_status": "ready",
           "action": "start"
         },
         {
@@ -36,31 +36,31 @@
         }
       ],
       "tag": "bridge_main",
-      "status": "INIT",
+      "status": "init",
       "content": [
         {
           "type": "chan_outbound",
           "triggers": [
             {
               "trigger_tag": "bridge_main",
-              "trigger_status": "READY",
+              "trigger_status": "BridgeCreated",
               "action": "start"
             }
           ],
           "tag": "specialist",
-          "status": "INIT"
+          "status": "init"
         },
         {
           "type": "chan_outbound",
           "triggers": [
             {
               "trigger_tag": "specialist",
-              "trigger_status": "ANSWER",
+              "trigger_status": "Dial#ANSWER",
               "action": "start"
             }
           ],
           "tag": "client",
-          "status": "INIT"
+          "status": "init"
         }
       ]
     },
@@ -69,36 +69,36 @@
       "triggers": [
         {
           "trigger_tag": "specialist",
-          "trigger_status": "READY",
+          "trigger_status": "111StasisStart",
           "action": "start"
         }
       ],
       "tag": "bridge_spy_specialist",
-      "status": "INIT",
+      "status": "init",
       "content": [
         {
           "type": "chan_spy",
           "triggers": [
             {
               "trigger_tag": "bridge_spy_specialist",
-              "trigger_status": "READY",
+              "trigger_status": "BridgeCreated",
               "action": "start"
             }
           ],
           "tag": "spy_specialist",
-          "status": "INIT"
+          "status": "init"
         },
         {
           "type": "chan_em",
           "triggers": [
             {
               "trigger_tag": "spy_specialist",
-              "trigger_status": "READY",
+              "trigger_status": "StasisStart",
               "action": "start"
             }
           ],
           "tag": "em_spy_specialist",
-          "status": "INIT"
+          "status": "init"
         }
       ]
     },
@@ -107,36 +107,36 @@
       "triggers": [
         {
           "trigger_tag": "client",
-          "trigger_status": "READY",
+          "trigger_status": "111Dial#ANSWER",
           "action": "start"
         }
       ],
       "tag": "bridge_spy_client",
-      "status": "INIT",
+      "status": "init",
       "content": [
         {
           "type": "chan_spy",
           "triggers": [
             {
               "trigger_tag": "bridge_spy_specialist",
-              "trigger_status": "READY",
+              "trigger_status": "BridgeCreated",
               "action": "start"
             }
           ],
           "tag": "spy_client",
-          "status": "INIT"
+          "status": "init"
         },
         {
           "type": "chan_em",
           "triggers": [
             {
               "trigger_tag": "spy_client",
-              "trigger_status": "READY",
+              "trigger_status": "StasisStart",
               "action": "start"
             }
           ],
           "tag": "em_spy_client",
-          "status": "INIT"
+          "status": "init"
         }
       ]
     }

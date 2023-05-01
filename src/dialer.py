@@ -52,7 +52,6 @@ class Dialer(object):
                 continue
 
             event = self.queue_trigger_events.pop()
-            self.log.info('FAVFAV')
             self.log.info(event)
 
             if event.lead_id in self.rooms:

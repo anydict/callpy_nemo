@@ -13,10 +13,14 @@ class APIHandler(object):
         self._url = f'http://{host}:{port}/ari'
         auth = aiohttp.BasicAuth(login=str(login), password=str(password), encoding='utf-8')
         self._session = aiohttp.ClientSession(auth=auth)
-        self.logapi = logger.bind(object_id=f'APIHandler')
+        self.log_api = logger.bind(object_id=f'APIHandler')
+        self.count_request = 0
 
     async def send(self, url: str, method: str, body: dict):
-        self.logapi.debug(f'send url={url} meth={method}, body={body}')
+        self.count_request += 1
+        self.number_request = self.count_request
+
+        self.log_api.debug(f'send url={url} meth={method}, number_request={self.number_request} body={body}')
         response = {'http_code': 503}
         try:
             resp = await self._session.request(method=method, url=url, data=body)
@@ -27,15 +31,15 @@ class APIHandler(object):
                     json_response = {}
                 if 'error' in json_response:
                     response.update({'error': json_response['error']})
-                    self.logapi.warning(f'json_response={json_response}')
+                    self.log_api.warning(f'json_response={json_response}')
                 else:
                     response.update({'json_response': json_response, 'http_code': resp.status})
         except Exception as e:
             response.update({'error': e})
-            self.logapi.error(response)
-            self.logapi.exception(e)
+            self.log_api.error(response)
+            self.log_api.exception(e)
 
-        self.logapi.debug(f'response={response}')
+        self.log_api.debug(f'number_request={self.number_request} response={response}')
         return response
 
     async def get_peers(self):
@@ -64,6 +68,9 @@ class APIHandler(object):
 
     async def get_bridge_detail(self, bridge_id: str):
         return await self.send(f'{self._url}/bridges/{bridge_id}', 'GET', {})
+
+    async def add_channel_to_bridge(self, bridge_id: str, chan_id):
+        return await self.send(f'{self._url}/bridges/{bridge_id}/addChannel', 'POST', {'channel': chan_id})
 
     async def get_asterisk_info(self):
         return await self.send(f'{self._url}/asterisk/info', 'GET', {})
@@ -97,6 +104,21 @@ class APIHandler(object):
         return res
 
     async def create_chan(self, chan_id: str, endpoint: str, callerid: str):
+        res = await self.send(f'{self._url}/channels/create',
+                              'POST', {
+                                  'channelId': chan_id,
+                                  'endpoint': endpoint,
+                                  'app': self._app,
+                                  'variables': {'CALLERID(num)': callerid, 'CALLERID(name)': callerid}
+                              })
+        return res
+
+    async def dial_chan(self, chan_id: str):
+        res = await self.send(f'{self._url}/channels/{chan_id}/dial',
+                              'POST', {'timeout': 60})
+        return res
+
+    async def create_chan_originate(self, chan_id: str, endpoint: str, callerid: str):
         res = await self.send(f'{self._url}/channels/{chan_id}',
                               'POST', {'channelId': chan_id,
                                        'endpoint': endpoint,
