@@ -54,7 +54,7 @@ class TriggerEvent:
         elif event_type == 'Dial' and '-id-' in event.get('peer').get('id'):
             tag = event.get('peer').get('id').split('-id-')[0]
 
-        elif event_type in ('BridgeCreated', 'ChannelEnteredBridge', 'ChannelLeftBridge'):
+        elif event_type in ('BridgeCreated', 'ChannelEnteredBridge', 'ChannelLeftBridge', 'BridgeDestroyed'):
             if '-id-' in event.get('bridge').get('id'):
                 tag = event.get('bridge').get('id').split('-id-')[0]
 
@@ -78,7 +78,7 @@ class TriggerEvent:
         elif event_type == 'Dial' and '-id-' in event.get('peer').get('id'):
             lead_id = event.get('peer').get('id').split('-id-')[1]
 
-        elif event_type in ('BridgeCreated', 'ChannelEnteredBridge', 'ChannelLeftBridge'):
+        elif event_type in ('BridgeCreated', 'ChannelEnteredBridge', 'ChannelLeftBridge', 'BridgeDestroyed'):
             if '-id-' in event.get('bridge').get('id'):
                 lead_id = event.get('bridge').get('id').split('-id-')[1]
 

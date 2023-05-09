@@ -7,136 +7,179 @@
     {
       "trigger_tag": "bridge_main",
       "trigger_status": "DESTROY",
-      "action": "terminate"
+      "action": "terminate",
+      "active": true
     },
     {
       "trigger_tag": "client",
-      "trigger_status": "DESTROY",
-      "action": "terminate"
+      "trigger_status": "StasisEnd",
+      "action": "terminate",
+      "active": true
     },
     {
       "trigger_tag": "specialist",
-      "trigger_status": "DESTROY",
-      "action": "terminate"
+      "trigger_status": "StasisEnd",
+      "action": "terminate",
+      "active": true
     }
   ],
   "content": [
     {
       "type": "bridge",
+      "tag": "bridge_main",
+      "status": "init",
       "triggers": [
         {
           "trigger_tag": "room",
           "trigger_status": "ready",
-          "action": "start"
+          "action": "start",
+          "active": true
         },
         {
           "trigger_tag": "specialist",
-          "trigger_status": "STOP",
-          "action": "terminate"
+          "trigger_status": "StasisEnd",
+          "action": "terminate",
+          "active": true
+        },
+        {
+          "trigger_tag": "client",
+          "trigger_status": "StasisEnd",
+          "action": "terminate",
+          "active": true
         }
       ],
-      "tag": "bridge_main",
-      "status": "init",
       "content": [
         {
           "type": "chan_outbound",
+          "tag": "specialist",
+          "status": "init",
           "triggers": [
             {
               "trigger_tag": "bridge_main",
               "trigger_status": "BridgeCreated",
-              "action": "start"
+              "action": "start",
+              "active": true
             }
-          ],
-          "tag": "specialist",
-          "status": "init"
+          ]
         },
         {
           "type": "chan_outbound",
+          "tag": "client",
+          "status": "init",
           "triggers": [
             {
               "trigger_tag": "specialist",
               "trigger_status": "Dial#ANSWER",
-              "action": "start"
+              "action": "start",
+              "active": true
             }
-          ],
-          "tag": "client",
-          "status": "init"
+          ]
         }
       ]
     },
     {
       "type": "bridge",
+      "tag": "bridge_snoop_specialist",
+      "status": "init",
       "triggers": [
         {
           "trigger_tag": "specialist",
-          "trigger_status": "111StasisStart",
-          "action": "start"
-        }
-      ],
-      "tag": "bridge_spy_specialist",
-      "status": "init",
-      "content": [
-        {
-          "type": "chan_spy",
-          "triggers": [
-            {
-              "trigger_tag": "bridge_spy_specialist",
-              "trigger_status": "BridgeCreated",
-              "action": "start"
-            }
-          ],
-          "tag": "spy_specialist",
-          "status": "init"
+          "trigger_status": "StasisStart",
+          "action": "start",
+          "active": true
         },
         {
-          "type": "chan_em",
+          "trigger_tag": "specialist",
+          "trigger_status": "StasisEnd",
+          "action": "terminate",
+          "active": true
+        }
+      ],
+      "content": [
+        {
+          "type": "chan_emedia",
+          "tag": "emedia_specialist",
+          "status": "init",
+          "params": {
+            "external_host": "127.0.0.1:9999"
+          },
           "triggers": [
             {
-              "trigger_tag": "spy_specialist",
-              "trigger_status": "StasisStart",
-              "action": "start"
+              "trigger_tag": "bridge_snoop_specialist",
+              "trigger_status": "BridgeCreated",
+              "action": "start",
+              "active": true
             }
-          ],
-          "tag": "em_spy_specialist",
-          "status": "init"
+          ]
+        },
+        {
+          "type": "chan_snoop",
+          "tag": "snoop_specialist",
+          "status": "init",
+          "params": {
+            "target_chan_tag": "specialist"
+          },
+          "triggers": [
+            {
+              "trigger_tag": "emedia_specialist",
+              "trigger_status": "StasisStart",
+              "action": "start",
+              "active": true
+            }
+          ]
         }
       ]
     },
     {
       "type": "bridge",
+      "tag": "bridge_snoop_client",
+      "status": "init",
       "triggers": [
         {
           "trigger_tag": "client",
-          "trigger_status": "111Dial#ANSWER",
-          "action": "start"
-        }
-      ],
-      "tag": "bridge_spy_client",
-      "status": "init",
-      "content": [
-        {
-          "type": "chan_spy",
-          "triggers": [
-            {
-              "trigger_tag": "bridge_spy_specialist",
-              "trigger_status": "BridgeCreated",
-              "action": "start"
-            }
-          ],
-          "tag": "spy_client",
-          "status": "init"
+          "trigger_status": "StasisStart",
+          "action": "start",
+          "active": true
         },
         {
-          "type": "chan_em",
+          "trigger_tag": "client",
+          "trigger_status": "StasisEnd",
+          "action": "terminate",
+          "active": true
+        }
+      ],
+      "content": [
+        {
+          "type": "chan_snoop",
+          "tag": "snoop_client",
+          "status": "init",
+          "params": {
+            "target_chan_tag": "client"
+          },
           "triggers": [
             {
-              "trigger_tag": "spy_client",
-              "trigger_status": "StasisStart",
-              "action": "start"
+              "trigger_tag": "bridge_snoop_specialist",
+              "trigger_status": "BridgeCreated",
+              "action": "start",
+              "active": true
             }
-          ],
-          "tag": "em_spy_client",
-          "status": "init"
+          ]
+        },
+        {
+          "type": "chan_emedia",
+          "tag": "emedia_client",
+          "status": "init",
+          "params": {
+            "external_host": "127.0.0.1:9999"
+          },
+          "triggers": [
+            {
+              "trigger_tag": "snoop_client",
+              "trigger_status": "StasisStart",
+              "action": "start",
+              "active": true
+            }
+          ]
         }
       ]
     }

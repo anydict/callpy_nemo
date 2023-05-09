@@ -1,5 +1,6 @@
 import aiohttp
 from loguru import logger
+import http.client
 
 
 class APIHandler(object):
@@ -18,9 +19,9 @@ class APIHandler(object):
 
     async def send(self, url: str, method: str, body: dict):
         self.count_request += 1
-        self.number_request = self.count_request
+        number_request = self.count_request
 
-        self.log_api.debug(f'send url={url} meth={method}, number_request={self.number_request} body={body}')
+        self.log_api.debug(f'send url={url} meth={method}, number_request={number_request} body={body}')
         response = {'http_code': 503}
         try:
             resp = await self._session.request(method=method, url=url, data=body)
@@ -31,7 +32,7 @@ class APIHandler(object):
                     json_response = {}
                 if 'error' in json_response:
                     response.update({'error': json_response['error']})
-                    self.log_api.warning(f'json_response={json_response}')
+                    self.log_api.warning(f'number_request={number_request} json_response={json_response}')
                 else:
                     response.update({'json_response': json_response, 'http_code': resp.status})
         except Exception as e:
@@ -39,7 +40,7 @@ class APIHandler(object):
             self.log_api.error(response)
             self.log_api.exception(e)
 
-        self.log_api.debug(f'number_request={self.number_request} response={response}')
+        self.log_api.debug(f'number_request={number_request} response={response}')
         return response
 
     async def get_peers(self):
@@ -103,6 +104,20 @@ class APIHandler(object):
         res = await self.send(f'{self._url}/bridges', 'POST', {'type': 'mixing', 'bridgeId': bridge_id, 'name': name})
         return res
 
+    async def destroy_bridge(self, bridge_id: str, include_channels: bool = True, reason_for_channels: str = '21'):
+        if include_channels:
+            bridge_detail_response = await self.get_bridge_detail(bridge_id)
+            if bridge_detail_response.get('http_code') == http.client.NOT_FOUND:
+                return bridge_detail_response
+
+            elif bridge_detail_response.get('http_code') == http.client.OK:
+                for chan_id in bridge_detail_response.get('json_response').get('channels', []):
+                    self.log_api.debug(chan_id)
+                    await self.delete_chan(chan_id, reason_for_channels)
+
+        res = await self.send(f'{self._url}/bridges/{bridge_id}', 'DELETE', {})
+        return res
+
     async def create_chan(self, chan_id: str, endpoint: str, callerid: str):
         res = await self.send(f'{self._url}/channels/create',
                               'POST', {
@@ -124,6 +139,62 @@ class APIHandler(object):
                                        'endpoint': endpoint,
                                        'app': self._app,
                                        "callerId": callerid})
+        return res
+
+    async def delete_chan(self, chan_id: str, reason_code: str):
+        res = await self.send(f'{self._url}/channels/{chan_id}', 'DELETE', {'reason_code': reason_code})
+        return res
+
+    async def create_snoop_chan(self, target_chan_id: str, snoop_id: str, spy: str = 'in', whisper: str = 'none'):
+        # spy: string - Direction of audio to spy on
+        #   # Default: none
+        #   # Allowed values: none, both, out, in
+        # whisper: string - Direction of audio to whisper into
+        #   # Default: none
+        #   # Allowed values: none, both, out, in
+        # app: string - (required) Application the snooping channel is placed into
+        # appArgs: string - The application arguments to pass to the Stasis application
+        # snoopId: string - Unique ID to assign to snooping channel
+
+        res = await self.send(f'{self._url}/channels/{target_chan_id}/snoop',
+                              'POST', {
+                                  'spy': spy,
+                                  'whisper': whisper,
+                                  'app': self._app,
+                                  'snoopId': snoop_id
+                              })
+        return res
+
+    async def create_emedia_chan(self, chan_id: str, external_host: str):
+        # channelId: string - The unique id to assign the channel on creation.
+        # app: string - (required) Stasis Application to place channel into
+        # external_host: string - (required) Hostname/ip:port of external host
+        # encapsulation: string - Payload encapsulation protocol
+        #   # Default: rtp
+        #   # Allowed values: rtp, audiosocket
+        # transport: string - Transport protocol
+        #   # Default: udp
+        #   # Allowed values: udp, tcp
+        # connection_type: string - Connection type (client/server)
+        #   # Default: client
+        #   # Allowed values: client
+        # format: string - (required) Format to encode audio in
+        # direction: string - External media direction
+        #   # Default: both
+        #   # Allowed values: both
+        # data: string - An arbitrary data field
+
+        res = await self.send(f'{self._url}/channels/externalMedia',
+                              'POST', {
+                                  'channelId': chan_id,
+                                  'app': self._app,
+                                  'external_host': external_host,
+                                  'encapsulation': 'rtp',
+                                  'transport': 'udp',
+                                  'connection_type': 'client',
+                                  'format': 'slin16',
+                                  'direction': 'both'
+                              })
         return res
 
     async def custom_event(self, event_name: str, source: str):

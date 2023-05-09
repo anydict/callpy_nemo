@@ -26,8 +26,8 @@ class Room(object):
     # }
 
     def __init__(self, ari: ARI, config: Config, lead: Lead, dial_plan: Dialplan):
-        self.bridges: list[Bridge] = []
-        self.tags_statuses = {}
+        self.bridges: dict[str, Bridge] = {}
+        self.tags_statuses: dict[str, dict] = {}
 
         self.ari: ARI = ari
         self.config: Config = config
@@ -83,30 +83,34 @@ class Room(object):
             await asyncio.sleep(5)
 
     async def check_trigger_room(self):
-        for trigger in [trg for trg in self.room_plan.triggers if trg.action == 'stop']:
+        for trigger in [trg for trg in self.room_plan.triggers if trg.action == 'terminate' and trg.active]:
             if trigger.trigger_status in self.tags_statuses.get(trigger.trigger_tag, []):
-                self.log.info(f' need destroy')
-                pass
+                trigger.active = False
+                await self.add_tag_status(tag=self.tag, new_status='stop')
 
     async def check_trigger_bridges(self):
-        for bridge_plan in self.bridges_plan:
 
-            if bridge_plan.tag in [bridge.tag for bridge in self.bridges]:
-                for trigger in [trg for trg in bridge_plan.triggers if trg.action == 'stop']:
+        for bridge_plan in self.bridges_plan:
+            if bridge_plan.tag in [bridge.tag for bridge in self.bridges.values()]:
+                # check terminate trigger if bridge already exist
+                for trigger in [trg for trg in bridge_plan.triggers if trg.action == 'terminate' and trg.active]:
+                    # check compliance the status of the object being monitored by the trigger
                     if trigger.trigger_status in self.tags_statuses.get(trigger.trigger_tag, []):
-                        self.log.info(f' need destroy bridge qwe={bridge_plan.tag}')  # destroy bridge
-                        await self.add_tag_status(tag=bridge_plan.tag, new_status='stop')
+                        trigger.active = False
+                        await self.bridges[bridge_plan.tag].destroy_bridge()
             else:
-                for trigger in [trg for trg in bridge_plan.triggers if trg.action == 'start']:
+                # check start trigger if bridge does not exist
+                for trigger in [trg for trg in bridge_plan.triggers if trg.action == 'start' and trg.active]:
                     if trigger.trigger_status in self.tags_statuses.get(trigger.trigger_tag, []):
+                        trigger.active = False
                         bridge = Bridge(ari=self.ari,
                                         config=self.config,
                                         room=self,
                                         bridge_plan=bridge_plan)
-                        self.bridges.append(bridge)
+                        self.bridges[bridge.tag] = bridge
                         asyncio.create_task(bridge.start_bridge())
 
-        for bridge in self.bridges:
+        for bridge in self.bridges.values():
             await bridge.check_trigger_chans()
 
     async def trigger_event_handler(self, trigger_event: TriggerEvent):

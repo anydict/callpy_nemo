@@ -51,7 +51,7 @@ class Dialer(object):
                 await asyncio.sleep(0.1)
                 continue
 
-            event = self.queue_trigger_events.pop()
+            event = self.queue_trigger_events.pop(0)  # get and remove first event
             self.log.info(event)
 
             if event.lead_id in self.rooms:

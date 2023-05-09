@@ -48,7 +48,7 @@ async def main():
     queue_lead = []
 
     with open('src/dialplans/dialplan_dialog.json', "r") as dial_plan_file:
-        dial_plan = Dialplan(params=json.load(dial_plan_file), app='anydict')
+        dial_plan = Dialplan(dialplan_raw=json.load(dial_plan_file), app='anydict')
         dial_plans = {'redir1_end8': dial_plan}
 
     with open('src/leads.json', "r") as lead_json:

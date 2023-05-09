@@ -19,6 +19,7 @@ class Chan(object):
         self.lead_id = self.room.lead_id
         self.clips_plan: list[Dialplan] = chan_plan.content
         self.tag = chan_plan.tag
+        self.params: dict = chan_plan.params
         self.chan_id = f'{self.tag}-id-{self.lead_id}'
 
         self.log = logger.bind(object_id=self.chan_id)

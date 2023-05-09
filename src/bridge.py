@@ -4,6 +4,10 @@ from loguru import logger
 
 from src.ari.ari import ARI
 from src.chan import Chan
+from src.chan_emedia import ChanEmedia
+from src.chan_inbound import ChanInbound
+from src.chan_outbound import ChanOutbound
+from src.chan_snoop import ChanSnoop
 from src.config import Config
 from src.dataclasses.dialplan import Dialplan
 
@@ -33,17 +37,42 @@ class Bridge(object):
     async def check_trigger_chans(self):
         try:
             for chan_plan in self.chan_plan:
-
-                if chan_plan.tag in [chan.tag for chan in self.chans]:
-                    continue
-
-                for trigger in chan_plan.triggers:
+                for trigger in [trg for trg in chan_plan.triggers if trg.action == 'start' and trg.active]:
                     if trigger.trigger_status in self.room.tags_statuses.get(trigger.trigger_tag, []):
-                        chan = Chan(ari=self.ari,
-                                    config=self.config,
-                                    room=self.room,
-                                    bridge_id=self.bridge_id,
-                                    chan_plan=chan_plan)
+                        trigger.active = False
+                        if chan_plan.type == 'chan_snoop':
+                            chan = ChanSnoop(ari=self.ari,
+                                             config=self.config,
+                                             room=self.room,
+                                             bridge_id=self.bridge_id,
+                                             chan_plan=chan_plan)
+                        elif chan_plan.type == 'chan_emedia':
+                            chan = ChanEmedia(ari=self.ari,
+                                              config=self.config,
+                                              room=self.room,
+                                              bridge_id=self.bridge_id,
+                                              chan_plan=chan_plan)
+                        elif chan_plan.type == 'chan_inbound':
+                            chan = ChanInbound(ari=self.ari,
+                                               config=self.config,
+                                               room=self.room,
+                                               bridge_id=self.bridge_id,
+                                               chan_plan=chan_plan)
+                        elif chan_plan.type == 'chan_outbound':
+                            chan = ChanOutbound(ari=self.ari,
+                                                config=self.config,
+                                                room=self.room,
+                                                bridge_id=self.bridge_id,
+                                                chan_plan=chan_plan)
+                        else:
+                            logger.warning(
+                                f'Invalid type for chan in dialplan (tag={chan_plan.tag}, type={chan_plan.type}')
+                            logger.warning(f'Try use type=chan_outbound')
+                            chan = ChanOutbound(ari=self.ari,
+                                                config=self.config,
+                                                room=self.room,
+                                                bridge_id=self.bridge_id,
+                                                chan_plan=chan_plan)
                         self.chans.append(chan)
                         asyncio.create_task(chan.start_chan())
         except Exception as e:
@@ -58,8 +87,14 @@ class Bridge(object):
             await self.ari.create_bridge(bridge_id=self.bridge_id)
             await self.add_status_bridge('API_start')
             while self.config.alive:
-                # self.log.info('start_bridge alive')
-                # await self.ari.custom_event('BridgeCreated', 'anydict')
                 await asyncio.sleep(4)
+        except Exception as e:
+            self.log.exception(e)
+
+    async def destroy_bridge(self):
+        try:
+            self.log.info('destroy_bridge')
+            await self.ari.destroy_bridge(bridge_id=self.bridge_id)
+
         except Exception as e:
             self.log.exception(e)
