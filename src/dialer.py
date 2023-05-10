@@ -21,7 +21,7 @@ class Dialer(object):
         self.dial_plans: dict = self.load_dialplans()
         self.app = app
         self.log = logger.bind(object_id='dialer')
-        self.rooms = {}
+        self.rooms: dict[str, Room] = {}
 
     @staticmethod
     def load_dialplans() -> dict:
