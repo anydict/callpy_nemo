@@ -1,4 +1,5 @@
 import asyncio
+import json
 from typing import Union
 
 from loguru import logger
@@ -12,15 +13,35 @@ from src.room import Room
 
 
 class Dialer(object):
-    def __init__(self, config: Config, queue_lead: list[Lead], dial_plans: dict, app: str):
+    def __init__(self, config: Config, app: str):
         self.ari: Union[ARI, None] = None
         self.config: Config = config
         self.queue_trigger_events: list[TriggerEvent] = []
-        self.queue_lead: list = queue_lead
-        self.dial_plans: dict = dial_plans
+        self.queue_lead: list[Lead] = self.load_leads()
+        self.dial_plans: dict = self.load_dialplans()
         self.app = app
         self.log = logger.bind(object_id='dialer')
         self.rooms = {}
+
+    @staticmethod
+    def load_dialplans() -> dict:
+        with open('src/dialplans/dialplan_dialog.json', "r") as dial_plan_file:
+            dial_plan = Dialplan(dialplan_raw=json.load(dial_plan_file), app='anydict')
+            dial_plans = {'redir1_end8': dial_plan}
+
+        return dial_plans
+
+    @staticmethod
+    def load_leads() -> list[Lead]:
+        with open('src/leads.json', "r") as lead_json:
+            lead = Lead(json.load(lead_json))
+
+        return [lead]
+
+    async def alive(self):
+        while self.config.alive:
+            self.log.info(f"alive")
+            await asyncio.sleep(60)
 
     async def start_dialer(self):
         self.log.info('start_dialer')

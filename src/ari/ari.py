@@ -54,11 +54,11 @@ class ARI(APIHandler):
             try:
                 while self._config.alive:
                     event_json = await ws.recv()
-                    self.log.info(event_json)
+                    self.log.debug(event_json)
                     try:
                         trigger_event = TriggerEvent(json.loads(event_json))
                         if trigger_event.event_type in DISABLED_ASTERISK_EVENT_TYPES:
-                            self.log.info(f'skip trigger event with type={trigger_event.event_type}')
+                            self.log.info(f'skip  trigger event with type={trigger_event.event_type}')
                         elif trigger_event.status in DISABLED_TRIGGER_EVENT_TYPES:
                             self.log.info(f'skip trigger event with status={trigger_event.status}')
                         else:
