@@ -16,7 +16,8 @@ logger.remove()  # this removes duplicates in the console if we use custom log f
 
 custom_log_format = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green>  [<level>{level}</level>] " \
                     "<cyan>[{extra[object_id]}]</cyan>" \
-                    "<magenta>{name}</magenta>:<magenta>{function}</magenta>:<cyan>{line}</cyan> - <level>{message}</level>"
+                    "<magenta>{name}</magenta>:<magenta>{function}</magenta>:" \
+                    "<cyan>{line}</cyan> - <level>{message}</level>"
 
 # for console
 logger.add(sink=sys.stdout,
