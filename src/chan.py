@@ -9,6 +9,7 @@ from src.dataclasses.dialplan import Dialplan
 
 
 class Chan(object):
+    """This class only for inheritance!"""
     clips: list[Clip] = []
 
     def __init__(self, ari: ARI, config: Config, room, bridge_id: str, chan_plan: Dialplan):
@@ -24,6 +25,9 @@ class Chan(object):
 
         self.log = logger.bind(object_id=self.chan_id)
         asyncio.create_task(self.add_status_chan(chan_plan.status))
+
+    def __del__(self):
+        self.log.debug('object has died')
 
     async def add_status_chan(self, new_status, value: str = ""):
         await self.room.add_tag_status(self.tag, new_status, value=value)
@@ -45,24 +49,6 @@ class Chan(object):
                     pass
 
     async def start_chan(self):
-        self.log.info('start_chan')
-        if self.tag == 'specialist':
-            create_chan_response = await self.ari.create_chan(chan_id=self.chan_id,
-                                                              endpoint='SIP/asterisk_extapi-1/321',
-                                                              callerid='321')
-        else:
-            create_chan_response = await self.ari.create_chan(chan_id=self.chan_id,
-                                                              endpoint='SIP/asterisk_extapi-1/123',
-                                                              callerid='123')
-        if create_chan_response.get('http_code') == 200:
-            await self.ari.subscription(event_source=f'channel:{self.chan_id}')
-            chan2bridge_response = await self.ari.add_channel_to_bridge(bridge_id=self.bridge_id,
-                                                                        chan_id=self.chan_id)
-            self.log.info(chan2bridge_response)
+        """Implement your own function start_chan in inherited classes"""
 
-            dial_chan_response = await self.ari.dial_chan(chan_id=self.chan_id)
-            self.log.info(dial_chan_response)
-
-        else:
-            await self.add_status_chan('api_error', create_chan_response.get('message'))
-            await self.add_status_chan('stop')
+        self.log.error('This class only for inheritance!')

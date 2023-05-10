@@ -13,6 +13,8 @@ from src.dataclasses.dialplan import Dialplan
 
 
 class Bridge(object):
+    """He runs channels and check chans triggers"""
+
     chans: list[Chan] = []
 
     def __init__(self, ari: ARI, config: Config, room, bridge_plan: Dialplan):
@@ -28,7 +30,7 @@ class Bridge(object):
         asyncio.create_task(self.add_status_bridge(bridge_plan.status))
 
     def __del__(self):
-        self.log.debug('object has died', lead_id=self.lead_id, tag=self.tag)
+        self.log.debug('object has died')
 
     async def add_status_bridge(self, new_status):
         new_status = new_status.upper()  # precaution

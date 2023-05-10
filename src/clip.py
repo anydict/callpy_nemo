@@ -8,6 +8,7 @@ from src.dataclasses.dialplan import Dialplan
 
 
 class Clip(object):
+    """For work Playback on channel"""
 
     def __init__(self, ari: ARI, config: Config, room, clip_plan: Dialplan):
         self.ari = ari

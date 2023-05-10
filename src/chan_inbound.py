@@ -3,6 +3,7 @@ from src.chan import Chan
 
 
 class ChanInbound(Chan):
+    """For work with Inbound channel"""
 
     async def start_chan(self):
         self.log.info('start ChanInbound')

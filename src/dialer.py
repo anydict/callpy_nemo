@@ -13,30 +13,34 @@ from src.room import Room
 
 
 class Dialer(object):
+    """He runs calls and send messages in rooms"""
+
     def __init__(self, config: Config, app: str):
         self.ari: Union[ARI, None] = None
         self.config: Config = config
         self.queue_trigger_events: list[TriggerEvent] = []
         self.queue_lead: list[Lead] = self.load_leads()
-        self.dial_plans: dict = self.load_dialplans()
+        self.raw_dialplans: dict = self.load_raw_dialplans()
         self.app = app
         self.log = logger.bind(object_id='dialer')
         self.rooms: dict[str, Room] = {}
 
-    @staticmethod
-    def load_dialplans() -> dict:
-        with open('src/dialplans/dialplan_dialog.json', "r") as dial_plan_file:
-            dial_plan = Dialplan(dialplan_raw=json.load(dial_plan_file), app='anydict')
-            dial_plans = {'redir1_end8': dial_plan}
+    def __del__(self):
+        self.log.debug('object has died')
 
-        return dial_plans
+    @staticmethod
+    def load_raw_dialplans() -> dict:
+        with open('src/dialplans/dialplan_dialog.json', "r") as plan_file:
+            raw_dialplans = {'redir1_end8': json.load(plan_file)}
+
+        return raw_dialplans
 
     @staticmethod
     def load_leads() -> list[Lead]:
-        with open('src/leads.json', "r") as lead_json:
-            lead = Lead(json.load(lead_json))
+        # with open('src/leads.json', "r") as lead_json:
+        #     lead = Lead(json.load(lead_json))
 
-        return [lead]
+        return []
 
     async def alive(self):
         while self.config.alive:
@@ -59,11 +63,18 @@ class Dialer(object):
                 await asyncio.sleep(0.1)
                 continue
 
-            dial_plan = self.get_dial_plan('redir1_end8')
+            raw_dialplan = self.get_raw_dialplan('redir1_end8')
+
+            room_plan = Dialplan(raw_dialplan=raw_dialplan, app=self.app)  # Each room has its own Dialplan
+            room_config = Config(self.config.join_config)  # Each room has its own Config
+
             lead = self.queue_lead.pop()
-            room = Room(ari=self.ari, config=self.config, lead=lead, dial_plan=dial_plan)
-            asyncio.create_task(room.start_room())
-            self.rooms[lead.lead_id] = room
+            if self.rooms.get(lead.lead_id) is not None:
+                self.log.error(f'Room with lead_id={lead.lead_id} already exists')
+            else:
+                room = Room(ari=self.ari, config=room_config, lead=lead, room_plan=room_plan)
+                asyncio.create_task(room.start_room())
+                self.rooms[lead.lead_id] = room
 
     async def run_message_pump_for_rooms(self):
         self.log.info('run_message_pump_for_rooms')
@@ -79,5 +90,5 @@ class Dialer(object):
                 room: Room = self.rooms[event.lead_id]
                 await room.trigger_event_handler(event)
 
-    def get_dial_plan(self, name: str) -> Dialplan:
-        return self.dial_plans[name]
+    def get_raw_dialplan(self, name: str) -> dict:
+        return self.raw_dialplans[name]

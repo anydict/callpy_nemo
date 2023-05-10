@@ -1,4 +1,6 @@
 import asyncio
+import json
+import os
 import platform
 import sys
 
@@ -40,27 +42,30 @@ logger.add(sink="src/logs/callpy_nemo.log",
 
 logger = logger.bind(object_id='main')
 
+join_config = {}
+if os.path.isfile('config.json'):
+    with open('config.json', "r") as jsonfile:
+        join_config = json.load(jsonfile)
+
+config = Config(join_config=join_config)
 app = FastAPI()
-config = Config('config.json')
 dialer = Dialer(config=config, app='anydict')
 routers = Routers(config=config, dialer=dialer)
 
 
 @app.on_event('startup')
 async def app_startup():
-    # Run our application
+    """Run our application"""
     asyncio.create_task(dialer.start_dialer())
     asyncio.create_task(dialer.run_message_pump_for_rooms())
     asyncio.create_task(dialer.alive())
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:8005"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware,
+                   allow_origins=["http://localhost:8005"],
+                   allow_credentials=True,
+                   allow_methods=["*"],
+                   allow_headers=["*"])
 app.include_router(routers.router)
 
 if __name__ == "__main__":
@@ -71,7 +76,7 @@ if __name__ == "__main__":
         logger.info(f"Node Name: {uname.node}")
         logger.info(f"Release: {uname.release}")
         logger.info(f"Machine: {uname.machine}")
-        # Start fastapi and our application through on_event startup
+        # Start FastAPI and our application through on_event startup
         uvicorn.run("main:app", host='127.0.0.1', port=8005, log_level="info", reload=True)
 
         logger.info(f"Shutting down")

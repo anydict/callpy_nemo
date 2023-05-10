@@ -3,6 +3,8 @@ import http.client
 
 
 class ChanEmedia(Chan):
+    """For work with ExternalMedia channel"""
+
     external_host: str = ''
 
     async def start_chan(self):

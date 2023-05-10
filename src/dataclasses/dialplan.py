@@ -11,22 +11,24 @@ class Trigger(object):
 
 @dataclass
 class Dialplan(object):
-    def __init__(self, dialplan_raw: dict, app: str):
+    def __init__(self, raw_dialplan: dict, app: str):
+        self.raw_dialplan = raw_dialplan
         self.app: str = app
-        self.name: str = dialplan_raw.get('name', 'unknown')
-        self.tag: str = dialplan_raw.get('tag', 'unknown')
-        self.type: str = dialplan_raw.get('type', 'unknown')
-        self.status: str = dialplan_raw.get('status', 'init')
-        self.params: dict = dialplan_raw.get('params', {})
+
+        self.name: str = raw_dialplan.get('name', 'unknown')
+        self.tag: str = raw_dialplan.get('tag', 'unknown')
+        self.type: str = raw_dialplan.get('type', 'unknown')
+        self.status: str = raw_dialplan.get('status', 'init')
+        self.params: dict = raw_dialplan.get('params', {})
 
         list_trigger = []
-        if dialplan_raw.get('triggers', None):
-            for trigger_raw in dialplan_raw.get('triggers'):
+        if raw_dialplan.get('triggers', None):
+            for trigger_raw in raw_dialplan.get('triggers'):
                 list_trigger.append(Trigger(trigger_raw))
         self.triggers: list[Trigger] = list_trigger
 
         list_dialplan = []
-        if dialplan_raw.get('content', None):
-            for dialplan in dialplan_raw.get('content'):
+        if raw_dialplan.get('content', None):
+            for dialplan in raw_dialplan.get('content'):
                 list_dialplan.append(Dialplan(dialplan, app))
         self.content: list[Dialplan] = list_dialplan

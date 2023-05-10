@@ -6,6 +6,19 @@ from src.config import Config
 from src.dialer import Dialer
 from fastapi.responses import Response
 
+from src.lead import Lead
+from pydantic import BaseModel
+
+
+class Item(BaseModel):
+    token: str
+    cmd: str
+    intphone: int
+    extphone: int
+    idclient: int
+    dir: str
+    calleridrule: str
+
 
 class Routers(object):
     def __init__(self, config, dialer):
@@ -13,7 +26,7 @@ class Routers(object):
         self.dialer: Dialer = dialer
 
         self.router = APIRouter(
-            tags=["diag"],
+            tags=["ALL"],
             responses={404: {"description": "Not found"}},
         )
         self.router.add_api_route("/", self.get_root, methods=["GET"])
@@ -23,6 +36,11 @@ class Routers(object):
         self.router.add_api_route("/rooms", self.get_rooms, methods=["GET"])
         self.router.add_api_route("/bridges", self.get_bridges, methods=["GET"])
         self.router.add_api_route("/chans", self.get_chans, methods=["GET"])
+
+        self.router.add_api_route("/originate", self.originate, methods=["POST"], tags=["originate"])
+
+        # all the routes above are through this GET route
+        self.router.add_api_route("/extapi", self.extapi, methods=["GET"])
 
     def get_root(self):
         json_str = json.dumps({"app": "callpy", "server": self.config.asterisk_host}, indent=4, default=str)
@@ -66,5 +84,44 @@ class Routers(object):
                     chans.append(chan.chan_id)
 
         json_str = json.dumps({"chans": chans}, indent=4, default=str)
+
+        return Response(content=json_str, media_type='application/json')
+
+    def originate(self, item: Item):
+        json_str = json.dumps({
+            "token": item.token,
+            "intphone": item.intphone,
+            "extphone": item.extphone,
+            "idclient": item.idclient,
+            "dir": dir,
+            "calleridrule": item.calleridrule
+        }, indent=4, default=str)
+
+        lead = Lead({
+            "phone_specialist": str(item.intphone),
+            "phone_client": str(item.extphone)
+        })
+
+        self.dialer.queue_lead.append(lead)
+
+        return Response(content=json_str, media_type='application/json')
+
+    def extapi(self,
+               token: str = '',
+               cmd: str = '',
+               intphone: int = '',
+               extphone: int = '',
+               idclient: int = 0,
+               dir: str = 'int',
+               calleridrule: str = 'pool'):
+        json_str = json.dumps({
+            "token": token,
+            "cmd": cmd,
+            "intphone": intphone,
+            "extphone": extphone,
+            "idclient": idclient,
+            "dir": dir,
+            "calleridrule": calleridrule
+        }, indent=4, default=str)
 
         return Response(content=json_str, media_type='application/json')

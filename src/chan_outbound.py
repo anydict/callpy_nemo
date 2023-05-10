@@ -5,6 +5,7 @@ import http.client
 
 
 class ChanOutbound(Chan):
+    """For work with Outbound channel"""
 
     async def start_chan(self):
         self.log.info('start ChanOutbound')

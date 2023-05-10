@@ -12,20 +12,9 @@ from src.lead import Lead
 
 
 class Room(object):
-    # {
-    #     "room":
-    #         {
-    #             "init": "2023-03-26T17:29:32.360",
-    #             "ready": "2023-03-26T17:29:33.360"
-    #         },
-    #     "bridge_main":
-    #         {
-    #             "init": "2023-03-26T17:29:32.360",
-    #             "ready": "2023-03-26T17:29:33.360"
-    #         }
-    # }
+    """He runs bridges and stores all status inside the room and check room/bridges triggers"""
 
-    def __init__(self, ari: ARI, config: Config, lead: Lead, dial_plan: Dialplan):
+    def __init__(self, ari: ARI, config: Config, lead: Lead, room_plan: Dialplan):
         self.bridges: dict[str, Bridge] = {}
         self.tags_statuses: dict[str, dict] = {}
 
@@ -33,13 +22,16 @@ class Room(object):
         self.config: Config = config
         self.lead_id: str = lead.lead_id
         self.lead: Lead = lead
-        self.tag: str = dial_plan.tag
-        self.room_plan: Dialplan = dial_plan
+        self.tag: str = room_plan.tag
+        self.room_plan: Dialplan = room_plan
         self.bridges_plan: list[Dialplan] = self.room_plan.content
         self.room_id: str = f'{self.tag}-lead_id-{lead.lead_id}'
 
         self.log = logger.bind(object_id=self.room_id)
-        asyncio.create_task(self.add_tag_status(tag=self.tag, new_status=dial_plan.status))
+        asyncio.create_task(self.add_tag_status(tag=self.tag, new_status=room_plan.status))
+
+    def __del__(self):
+        self.log.debug('object has died')
 
     async def add_tag_status(self,
                              tag: str,
@@ -47,6 +39,16 @@ class Room(object):
                              asterisk_time: str = "",
                              trigger_time: str = "",
                              value: str = ""):
+        """Stores tag status and run check triggers
+
+        :param str tag: Object Tag
+        :param str new_status: new status for tag
+        :param str asterisk_time: time from asterisk (if exist)
+        :param str trigger_time: time from create trigger event after receive asterisk event (if exist)
+        :param str value: Additional data
+        :return: None
+
+        """
         self.log.info(f' tag={tag} new status={new_status} ')
 
         if tag not in self.tags_statuses:

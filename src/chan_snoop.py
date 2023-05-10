@@ -5,6 +5,8 @@ import http.client
 
 
 class ChanSnoop(Chan):
+    """For work with Snoop channel (so far only spy)"""
+
     target_chan_tag: str = ''
     target_chan_id: str = ''
 
