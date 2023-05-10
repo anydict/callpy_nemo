@@ -14,7 +14,7 @@ from src.dialer import Dialer
 logger.configure(extra={"object_id": "None"})  # Default values if not bind extra variable
 logger.remove()  # this removes duplicates in the console if we use custom log format
 
-custom_log_format = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green>  [<level>{level}</level>] " \
+custom_log_format = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green>[<level>{level}</level>]" \
                     "<cyan>[{extra[object_id]}]</cyan>" \
                     "<magenta>{name}</magenta>:<magenta>{function}</magenta>:" \
                     "<cyan>{line}</cyan> - <level>{message}</level>"
