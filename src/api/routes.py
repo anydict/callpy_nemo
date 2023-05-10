@@ -25,13 +25,19 @@ class Routers(object):
         self.router.add_api_route("/chans", self.get_chans, methods=["GET"])
 
     def get_root(self):
-        return {"app": "callpy", "server": self.config.asterisk_host}
+        json_str = json.dumps({"app": "callpy", "server": self.config.asterisk_host}, indent=4, default=str)
+
+        return Response(content=json_str, media_type='application/json')
 
     def get_diag(self):
-        return {"res": "OK", "alive": self.config.alive}
+        json_str = json.dumps({"res": "OK", "alive": self.config.alive}, indent=4, default=str)
+
+        return Response(content=json_str, media_type='application/json')
 
     def get_stats(self):
-        return {"stats": "123", "alive": self.config.alive}
+        json_str = json.dumps({"stats": "123", "alive": self.config.alive}, indent=4, default=str)
+
+        return Response(content=json_str, media_type='application/json')
 
     def get_rooms(self):
         rooms = {}
@@ -47,7 +53,10 @@ class Routers(object):
         for room in self.dialer.rooms:
             for bridge in self.dialer.rooms[room].bridges:
                 bridges.append(self.dialer.rooms[room].bridges[bridge].bridge_id)
-        return {"bridges": bridges}
+
+        json_str = json.dumps({"bridges": bridges}, indent=4, default=str)
+
+        return Response(content=json_str, media_type='application/json')
 
     def get_chans(self):
         chans = []
@@ -55,4 +64,7 @@ class Routers(object):
             for bridge in self.dialer.rooms[room].bridges:
                 for chan in self.dialer.rooms[room].bridges[bridge].chans:
                     chans.append(chan.chan_id)
-        return {"chans": chans}
+
+        json_str = json.dumps({"chans": chans}, indent=4, default=str)
+
+        return Response(content=json_str, media_type='application/json')
