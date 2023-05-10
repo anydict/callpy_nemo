@@ -22,7 +22,7 @@ class APIHandler(object):
         number_request = self.count_request
 
         self.log_api.debug(f'send url={url} meth={method}, number_request={number_request} body={body}')
-        response = {'http_code': 503}
+        response = {'http_code': 503, 'message': '', 'json_response': {}}
         try:
             resp = await self._session.request(method=method, url=url, data=body)
             async with resp:
@@ -31,12 +31,14 @@ class APIHandler(object):
                 else:
                     json_response = {}
                 if 'error' in json_response:
-                    response.update({'error': json_response['error']})
+                    response.update({'message': json_response['error']})
                     self.log_api.warning(f'number_request={number_request} json_response={json_response}')
                 else:
                     response.update({'json_response': json_response, 'http_code': resp.status})
+                    if 'message' in json_response:
+                        response.update({'message': json_response['message']})
         except Exception as e:
-            response.update({'error': e})
+            response.update({'message': e})
             self.log_api.error(response)
             self.log_api.exception(e)
 

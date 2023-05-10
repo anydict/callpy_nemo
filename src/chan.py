@@ -25,8 +25,8 @@ class Chan(object):
         self.log = logger.bind(object_id=self.chan_id)
         asyncio.create_task(self.add_status_chan(chan_plan.status))
 
-    async def add_status_chan(self, new_status):
-        await self.room.add_tag_status(self.tag, new_status)
+    async def add_status_chan(self, new_status, value: str = ""):
+        await self.room.add_tag_status(self.tag, new_status, value=value)
 
     async def check_trigger_clips(self):
         for clip_plan in self.clips_plan:
@@ -64,5 +64,5 @@ class Chan(object):
             self.log.info(dial_chan_response)
 
         else:
-            await self.add_status_chan('api_error')
+            await self.add_status_chan('api_error', create_chan_response.get('message'))
             await self.add_status_chan('stop')

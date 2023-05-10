@@ -1,7 +1,10 @@
+import json
+
 from fastapi import APIRouter
 
 from src.config import Config
 from src.dialer import Dialer
+from fastapi.responses import Response
 
 
 class Routers(object):
@@ -31,10 +34,13 @@ class Routers(object):
         return {"stats": "123", "alive": self.config.alive}
 
     def get_rooms(self):
-        rooms = []
+        rooms = {}
         for room in self.dialer.rooms:
-            rooms.append(self.dialer.rooms[room].room_id)
-        return {"rooms": rooms}
+            rooms[self.dialer.rooms[room].room_id] = self.dialer.rooms[room].tags_statuses
+
+        json_str = json.dumps({"rooms": rooms}, indent=4, default=str)
+
+        return Response(content=json_str, media_type='application/json')
 
     def get_bridges(self):
         bridges = []

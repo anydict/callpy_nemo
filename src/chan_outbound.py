@@ -26,5 +26,5 @@ class ChanOutbound(Chan):
             self.log.info(dial_chan_response)
 
         else:
-            await self.add_status_chan('api_error')
+            await self.add_status_chan('api_error', create_chan_response.get('message'))
             await self.add_status_chan('stop')
