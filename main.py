@@ -57,6 +57,7 @@ routers = Routers(config=config, dialer=dialer)
 async def app_startup():
     """Run our application"""
     asyncio.create_task(dialer.start_dialer())
+    asyncio.create_task(dialer.room_termination_handler())
     asyncio.create_task(dialer.run_message_pump_for_rooms())
     asyncio.create_task(dialer.alive())
 

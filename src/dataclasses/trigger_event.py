@@ -22,7 +22,8 @@ class TriggerEvent:
         self.asterisk_id: str = event.get('asterisk_id') or UNKNOWN
         self.event_type: str = event.get('type') or UNKNOWN
 
-        self.asterisk_time: str = (event.get('timestamp') or datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f'))[:23]
+        self.asterisk_time: str = (event.get('timestamp') or datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f'))[
+                                  :23] + '000'
         self.trigger_time: str = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
         self.delay: float = self.calc_delay()
 

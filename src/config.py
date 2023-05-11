@@ -1,6 +1,3 @@
-import json
-
-
 class Config(object):
     """Config for our app"""
 

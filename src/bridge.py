@@ -36,6 +36,18 @@ class Bridge(object):
         new_status = new_status.upper()  # precaution
         await self.room.add_tag_status(self.tag, new_status)
 
+    async def chan_termination_handler(self):
+        if self.config.alive:
+            chan_for_remove = []
+            for chan in self.chans:
+                await chan.clip_termination_handler()
+                chan_for_remove.append(chan)
+
+            for chan in chan_for_remove:
+                self.chans.remove(chan)
+                self.log.debug(f'remove chan with tag={chan.tag} from memory')
+            del chan_for_remove
+
     async def check_trigger_chans(self):
         try:
             for chan_plan in self.chan_plan:
@@ -67,8 +79,7 @@ class Bridge(object):
                                                 bridge_id=self.bridge_id,
                                                 chan_plan=chan_plan)
                         else:
-                            logger.warning(
-                                f'Invalid type for chan in dialplan (tag={chan_plan.tag}, type={chan_plan.type}')
+                            logger.warning(f'Invalid type for chan in (tag={chan_plan.tag}, type={chan_plan.type}')
                             logger.warning(f'Try use type=chan_outbound')
                             chan = ChanOutbound(ari=self.ari,
                                                 config=self.config,
@@ -79,24 +90,16 @@ class Bridge(object):
                         asyncio.create_task(chan.start_chan())
         except Exception as e:
             self.log.exception(e)
+            self.log.error(f'e={e}')
 
         for chan in self.chans:
             await chan.check_trigger_clips()
 
     async def start_bridge(self):
-        try:
-            self.log.info('start_bridge')
-            await self.ari.create_bridge(bridge_id=self.bridge_id)
-            await self.add_status_bridge('API_start')
-            while self.config.alive:
-                await asyncio.sleep(4)
-        except Exception as e:
-            self.log.exception(e)
+        self.log.info('start_bridge')
+        await self.ari.create_bridge(bridge_id=self.bridge_id)
+        await self.add_status_bridge('API_start')
 
     async def destroy_bridge(self):
-        try:
-            self.log.info('destroy_bridge')
-            await self.ari.destroy_bridge(bridge_id=self.bridge_id)
-
-        except Exception as e:
-            self.log.exception(e)
+        self.log.info('destroy_bridge')
+        await self.ari.destroy_bridge(bridge_id=self.bridge_id)

@@ -77,12 +77,28 @@ class Room(object):
 
         await asyncio.sleep(0)
 
+    def check_tag_status(self, tag, status):
+        if tag not in self.tags_statuses:
+            return False
+        elif status in self.tags_statuses[tag]:
+            return True
+        else:
+            return False
+
+    async def bridge_termination_handler(self):
+        if self.config.alive:
+            bridge_tags_for_remove = []
+            for bridge_tag, bridge in self.bridges.items():
+                await bridge.chan_termination_handler()
+                bridge_tags_for_remove.append(bridge_tag)
+
+            for bridge_tag in bridge_tags_for_remove:
+                self.bridges.pop(bridge_tag)
+                self.log.debug(f'remove bridge with tag={bridge_tag} from memory')
+
     async def start_room(self):
         self.log.info('start_room')
         await self.add_tag_status(tag=self.tag, new_status='ready')
-
-        while self.config.alive:
-            await asyncio.sleep(5)
 
     async def check_trigger_room(self):
         for trigger in [trg for trg in self.room_plan.triggers if trg.action == 'terminate' and trg.active]:

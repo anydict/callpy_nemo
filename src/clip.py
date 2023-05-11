@@ -22,6 +22,9 @@ class Clip(object):
         self.log = logger.bind(object_id=self.clip_id)
         asyncio.create_task(self.add_status_clip(clip_plan.status))
 
+    def __del__(self):
+        self.log.debug('object has died')
+
     async def add_status_clip(self, new_status):
         await self.room.add_tag_status(self.tag, new_status)
 

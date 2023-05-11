@@ -47,6 +47,20 @@ class Dialer(object):
             self.log.info(f"alive")
             await asyncio.sleep(60)
 
+    async def room_termination_handler(self):
+        while self.config.alive:
+            await asyncio.sleep(10)
+            room_tags_for_remove = []
+            for tag, room in self.rooms.items():
+                if room.check_tag_status('room', 'stop'):
+                    # TODO add save db tags statuses
+                    await room.bridge_termination_handler()
+                    room_tags_for_remove.append(tag)
+
+            for room_tag in room_tags_for_remove:
+                self.rooms.pop(room_tag)
+                self.log.info(f'remove room with tag={room_tag} from memory')
+
     async def start_dialer(self):
         self.log.info('start_dialer')
         self.ari = ARI(self.config, self.queue_trigger_events, self.app)

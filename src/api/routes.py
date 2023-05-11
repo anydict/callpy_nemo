@@ -1,4 +1,6 @@
+import datetime
 import json
+from statistics import fmean
 
 from fastapi import APIRouter
 
@@ -18,6 +20,7 @@ class Item(BaseModel):
     idclient: int
     dir: str
     calleridrule: str
+    actionid: str | None
 
 
 class Routers(object):
@@ -53,7 +56,22 @@ class Routers(object):
         return Response(content=json_str, media_type='application/json')
 
     def get_stats(self):
-        json_str = json.dumps({"stats": "123", "alive": self.config.alive}, indent=4, default=str)
+        stat_store = [0]
+        for room in self.dialer.rooms.values():
+            for tag in room.tags_statuses:
+                for status in room.tags_statuses[tag].values():
+                    if status.get('asterisk_time') != '':
+                        d1 = datetime.datetime.strptime(status.get('asterisk_time'),
+                                                        '%Y-%m-%dT%H:%M:%S.%f')
+                        d2 = datetime.datetime.strptime(status.get('trigger_time'),
+                                                        '%Y-%m-%dT%H:%M:%S.%f')
+                        diff = (d2 - d1).total_seconds()
+                        stat_store.append(diff)
+        json_str = json.dumps({
+            "max": max(stat_store),
+            "avg": fmean(stat_store),
+            "alive": self.config.alive
+        }, indent=4, default=str)
 
         return Response(content=json_str, media_type='application/json')
 
@@ -94,7 +112,8 @@ class Routers(object):
             "extphone": item.extphone,
             "idclient": item.idclient,
             "dir": dir,
-            "calleridrule": item.calleridrule
+            "calleridrule": item.calleridrule,
+            "actionid": item.actionid
         }, indent=4, default=str)
 
         lead = Lead({
@@ -113,7 +132,9 @@ class Routers(object):
                extphone: int = '',
                idclient: int = 0,
                dir: str = 'int',
-               calleridrule: str = 'pool'):
+               calleridrule: str = 'pool',
+               actionid: str = ''
+               ):
         json_str = json.dumps({
             "token": token,
             "cmd": cmd,
@@ -121,7 +142,8 @@ class Routers(object):
             "extphone": extphone,
             "idclient": idclient,
             "dir": dir,
-            "calleridrule": calleridrule
+            "calleridrule": calleridrule,
+            "actionid": actionid
         }, indent=4, default=str)
 
         return Response(content=json_str, media_type='application/json')
