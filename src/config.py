@@ -2,6 +2,7 @@ class Config(object):
     """Config for our app"""
 
     default = {'alive': True,
+               'shutdown': False,
                'asterisk_host': '127.0.0.1',
                'asterisk_port': '8088',
                'asterisk_login': 'asterisk',
@@ -12,7 +13,9 @@ class Config(object):
 
         self.new_config = self.default
         self.new_config.update(join_config)
-        self.alive: bool = bool(self.new_config['alive'])
+        self.alive: bool = bool(self.new_config['alive'])  # if true then start kill FastAPI and APP
+        self.shutdown: bool = bool(self.new_config['shutdown'])  # if true then waiting for finish all tasks
+
         self.asterisk_host: str = str(self.new_config['asterisk_host'])
         self.asterisk_port: int = int(self.new_config['asterisk_port'])
         self.asterisk_login: str = str(self.new_config['asterisk_login'])

@@ -27,7 +27,7 @@ class Chan(object):
         asyncio.create_task(self.add_status_chan(chan_plan.status))
 
     def __del__(self):
-        self.log.error('object has died')
+        self.log.debug('object has died')
 
     async def add_status_chan(self, new_status, value: str = ""):
         await self.room.add_tag_status(self.tag, new_status, value=value)

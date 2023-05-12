@@ -14,7 +14,7 @@ from src.lead import Lead
 class Room(object):
     """He runs bridges and stores all status inside the room and check room/bridges triggers"""
 
-    def __init__(self, ari: ARI, config: Config, lead: Lead, room_plan: Dialplan):
+    def __init__(self, ari: ARI, config: Config, lead: Lead, raw_dialplan: dict, app: str):
         self.bridges: dict[str, Bridge] = {}
         self.tags_statuses: dict[str, dict] = {}
 
@@ -22,13 +22,14 @@ class Room(object):
         self.config: Config = config
         self.lead_id: str = lead.lead_id
         self.lead: Lead = lead
-        self.tag: str = room_plan.tag
-        self.room_plan: Dialplan = room_plan
+        self.room_plan: Dialplan = Dialplan(raw_dialplan=raw_dialplan, app=app)  # Each room has its own Dialplan
+        self.tag: str = self.room_plan.tag
+
         self.bridges_plan: list[Dialplan] = self.room_plan.content
         self.room_id: str = f'{self.tag}-lead_id-{lead.lead_id}'
 
         self.log = logger.bind(object_id=self.room_id)
-        asyncio.create_task(self.add_tag_status(tag=self.tag, new_status=room_plan.status))
+        asyncio.create_task(self.add_tag_status(tag=self.tag, new_status=self.room_plan.status))
 
     def __del__(self):
         self.log.debug('object has died')
@@ -73,7 +74,6 @@ class Room(object):
 
         await self.check_trigger_room()
         await self.check_trigger_bridges()
-        self.log.info(self.tags_statuses)
 
         await asyncio.sleep(0)
 
@@ -95,6 +95,7 @@ class Room(object):
             for bridge_tag in bridge_tags_for_remove:
                 self.bridges.pop(bridge_tag)
                 self.log.debug(f'remove bridge with tag={bridge_tag} from memory')
+            self.log.info(self.tags_statuses)
 
     async def start_room(self):
         self.log.info('start_room')

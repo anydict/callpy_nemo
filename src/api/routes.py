@@ -3,18 +3,18 @@ import json
 from statistics import fmean
 
 from fastapi import APIRouter
+from loguru import logger
 
 from src.config import Config
 from src.dialer import Dialer
 from fastapi.responses import Response
 
 from src.lead import Lead
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 
 class Item(BaseModel):
     token: str
-    cmd: str
     intphone: int
     extphone: int
     idclient: int
@@ -27,6 +27,7 @@ class Routers(object):
     def __init__(self, config, dialer):
         self.config: Config = config
         self.dialer: Dialer = dialer
+        self.log = logger.bind(object_id='routers')
 
         self.router = APIRouter(
             tags=["ALL"],
@@ -40,6 +41,7 @@ class Routers(object):
         self.router.add_api_route("/bridges", self.get_bridges, methods=["GET"])
         self.router.add_api_route("/chans", self.get_chans, methods=["GET"])
 
+        self.router.add_api_route("/restart", self.restart, methods=["POST"])
         self.router.add_api_route("/originate", self.originate, methods=["POST"], tags=["originate"])
 
         # all the routes above are through this GET route
@@ -105,6 +107,20 @@ class Routers(object):
 
         return Response(content=json_str, media_type='application/json')
 
+    def restart(self):
+        self.config.shutdown = True
+
+        json_str = json.dumps({
+            "app": "callpy",
+            "server": self.config.asterisk_host,
+            "shutdown": self.config.shutdown,
+            "alive": self.config.alive,
+            "msg": "app restart started",
+            "current_time": datetime.datetime.now().isoformat()
+        }, indent=4, default=str)
+
+        return Response(content=json_str, media_type='application/json')
+
     def originate(self, item: Item):
         json_str = json.dumps({
             "token": item.token,
@@ -115,6 +131,9 @@ class Routers(object):
             "calleridrule": item.calleridrule,
             "actionid": item.actionid
         }, indent=4, default=str)
+
+        if self.config.alive is False:
+            return Response(status_code=503)
 
         lead = Lead({
             "phone_specialist": str(item.intphone),
@@ -131,7 +150,7 @@ class Routers(object):
                intphone: int = '',
                extphone: int = '',
                idclient: int = 0,
-               dir: str = 'int',
+               dir: str = 'int',  # noqa
                calleridrule: str = 'pool',
                actionid: str = ''
                ):
@@ -145,5 +164,26 @@ class Routers(object):
             "calleridrule": calleridrule,
             "actionid": actionid
         }, indent=4, default=str)
+
+        # TODO add work with token
+        if token != '612tkABC':
+            return Response(content='{"res": "ERROR", "msg": "No valid token"}', media_type='application/json')
+
+        if cmd == 'restart':
+            return self.restart()
+        elif cmd == 'originate':
+            try:
+                item = Item(token=token,
+                            intphone=intphone,
+                            extphone=extphone,
+                            idclient=idclient,
+                            dir=dir,
+                            calleridrule=calleridrule,
+                            actionid=actionid)
+            except ValidationError as e:
+                self.log.debug(f'ValidationError = {e} \n\njson_str = {json_str}')
+                return Response(content='{"res": "ERROR", "msg": "Incorrect fields in request"}',
+                                media_type='application/json')
+            return self.originate(item)
 
         return Response(content=json_str, media_type='application/json')

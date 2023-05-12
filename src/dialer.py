@@ -1,12 +1,12 @@
 import asyncio
 import json
+import os
 from typing import Union
 
 from loguru import logger
 
 from src.ari.ari import ARI
 from src.config import Config
-from src.dataclasses.dialplan import Dialplan
 from src.dataclasses.trigger_event import TriggerEvent
 from src.lead import Lead
 from src.room import Room
@@ -50,16 +50,16 @@ class Dialer(object):
     async def room_termination_handler(self):
         while self.config.alive:
             await asyncio.sleep(10)
-            room_tags_for_remove = []
-            for tag, room in self.rooms.items():
+            lead_ids_for_remove = []
+            for lead_id, room in self.rooms.items():
                 if room.check_tag_status('room', 'stop'):
                     # TODO add save db tags statuses
                     await room.bridge_termination_handler()
-                    room_tags_for_remove.append(tag)
+                    lead_ids_for_remove.append(lead_id)
 
-            for room_tag in room_tags_for_remove:
-                self.rooms.pop(room_tag)
-                self.log.info(f'remove room with tag={room_tag} from memory')
+            for lead_id in lead_ids_for_remove:
+                self.rooms.pop(lead_id)
+                self.log.info(f'remove room with lead_id={lead_id} from memory')
 
     async def start_dialer(self):
         self.log.info('start_dialer')
@@ -72,23 +72,33 @@ class Dialer(object):
         self.log.info(f"Peers: {peers}")
         self.log.info(f"Subscribe: {subscribe}")
 
-        while self.config.alive:
+        # run new call until receive "restart" request (see routes.py)
+        while self.config.shutdown is False:
             if len(self.queue_lead) == 0:
                 await asyncio.sleep(0.1)
                 continue
 
             raw_dialplan = self.get_raw_dialplan('redir1_end8')
-
-            room_plan = Dialplan(raw_dialplan=raw_dialplan, app=self.app)  # Each room has its own Dialplan
             room_config = Config(self.config.join_config)  # Each room has its own Config
 
             lead = self.queue_lead.pop()
             if self.rooms.get(lead.lead_id) is not None:
                 self.log.error(f'Room with lead_id={lead.lead_id} already exists')
             else:
-                room = Room(ari=self.ari, config=room_config, lead=lead, room_plan=room_plan)
+                room = Room(ari=self.ari, config=room_config, lead=lead, raw_dialplan=raw_dialplan, app=self.app)
                 asyncio.create_task(room.start_room())
                 self.rooms[lead.lead_id] = room
+
+        while len(list(self.rooms)) > 0:
+            await asyncio.sleep(1)
+
+        # full stop app
+        self.config.alive = False
+        # close FastAPI and our app
+        parent_pid = os.getppid()
+        current_pid = os.getpid()
+        os.kill(parent_pid, 9)
+        os.kill(current_pid, 9)
 
     async def run_message_pump_for_rooms(self):
         self.log.info('run_message_pump_for_rooms')
@@ -98,7 +108,7 @@ class Dialer(object):
                 continue
 
             event = self.queue_trigger_events.pop(0)  # get and remove first event
-            self.log.info(event)
+            self.log.debug(event)
 
             if event.lead_id in self.rooms:
                 room: Room = self.rooms[event.lead_id]

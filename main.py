@@ -77,6 +77,9 @@ if __name__ == "__main__":
         logger.info(f"Node Name: {uname.node}")
         logger.info(f"Release: {uname.release}")
         logger.info(f"Machine: {uname.machine}")
+        logger.info(f"Parent pid: {os.getppid()}")
+        logger.info(f"Current pid: {os.getpid()}")
+
         # Start FastAPI and our application through on_event startup
         uvicorn.run("main:app", host='127.0.0.1', port=8005, log_level="info", reload=True)
 
