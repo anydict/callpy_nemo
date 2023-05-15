@@ -5,6 +5,12 @@
   "timeout": 600,
   "triggers": [
     {
+      "trigger_tag": "room",
+      "trigger_status": "api_hangup",
+      "action": "terminate",
+      "active": true
+    },
+    {
       "trigger_tag": "bridge_main",
       "trigger_status": "DESTROY",
       "action": "terminate",

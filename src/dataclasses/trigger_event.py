@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Union
 
 UNKNOWN = 'UNKNOWN'
 
@@ -9,7 +10,7 @@ class TriggerEvent:
     app: str
     asterisk_id: str
     event_type: str
-    asterisk_time: str
+    external_time: str
     trigger_time: str
     delay: float
     tag: str
@@ -21,10 +22,9 @@ class TriggerEvent:
         self.app: str = event.get('application') or UNKNOWN
         self.asterisk_id: str = event.get('asterisk_id') or UNKNOWN
         self.event_type: str = event.get('type') or UNKNOWN
-
-        self.asterisk_time: str = (event.get('timestamp') or datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f'))[
-                                  :23] + '000'
         self.trigger_time: str = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
+        self.external_time: str = self.fix_iso_timestamp(event.get('timestamp'))
+
         self.delay: float = self.calc_delay()
 
         self.tag: str = self.get_tag_from_event(event, self.event_type)
@@ -33,22 +33,37 @@ class TriggerEvent:
         self.value: str = self.get_value_from_event(event, self.event_type)
 
     def calc_delay(self) -> float:
-        a = datetime.strptime(self.asterisk_time, "%Y-%m-%dT%H:%M:%S.%f")
+        a = datetime.strptime(self.external_time, "%Y-%m-%dT%H:%M:%S.%f")
         b = datetime.strptime(self.trigger_time, "%Y-%m-%dT%H:%M:%S.%f")
         return (b - a).total_seconds()
 
     @staticmethod
+    def fix_iso_timestamp(var_time: Union[str, None]):
+        """ Converting the date to the correct string format """
+
+        if var_time == '':
+            return var_time
+        elif len(str(var_time)) > 23:
+            # 2023-05-16T00:33:52.951+0300 to 2023-05-16T00:33:52.951000
+            return f'{var_time[:23]}000'
+        else:
+            # other cases return current date (example: 2023-05-16T00:31:03.264071)
+            return datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
+
+    @staticmethod
     def get_tag_from_event(event: dict, event_type: str):
         tag = UNKNOWN
-        if event_type in ('ChannelDialplan',
-                          'ChannelCreated',
-                          'ChannelVarset',
-                          'ChannelDtmfReceived',
-                          'ChannelStateChange',
-                          'ChannelDestroyed',
-                          'ChannelHangupRequest',
-                          'StasisStart',
-                          'StasisEnd'):
+        if event_type == 'ExternalEvent':
+            tag = event.get('tag')
+        elif event_type in ('ChannelDialplan',
+                            'ChannelCreated',
+                            'ChannelVarset',
+                            'ChannelDtmfReceived',
+                            'ChannelStateChange',
+                            'ChannelDestroyed',
+                            'ChannelHangupRequest',
+                            'StasisStart',
+                            'StasisEnd'):
             if '-id-' in event.get('channel').get('id'):
                 tag = event.get('channel').get('id').split('-id-')[0]
 
@@ -64,15 +79,17 @@ class TriggerEvent:
     @staticmethod
     def get_lead_id_from_event(event: dict, event_type: str):
         lead_id = UNKNOWN
-        if event_type in ('ChannelDialplan',
-                          'ChannelCreated',
-                          'ChannelVarset',
-                          'ChannelDtmfReceived',
-                          'ChannelStateChange',
-                          'ChannelDestroyed',
-                          'ChannelHangupRequest',
-                          'StasisStart',
-                          'StasisEnd'):
+        if event_type == 'ExternalEvent':
+            lead_id = event.get('lead_id')
+        elif event_type in ('ChannelDialplan',
+                            'ChannelCreated',
+                            'ChannelVarset',
+                            'ChannelDtmfReceived',
+                            'ChannelStateChange',
+                            'ChannelDestroyed',
+                            'ChannelHangupRequest',
+                            'StasisStart',
+                            'StasisEnd'):
             if '-id-' in event.get('channel').get('id'):
                 lead_id = event.get('channel').get('id').split('-id-')[1]
 
@@ -87,8 +104,10 @@ class TriggerEvent:
 
     @staticmethod
     def get_status_from_event(event: dict, event_type: str):
+        if event_type == 'ExternalEvent':
+            status = event.get('status')
 
-        if event_type == 'ChannelStateChange':
+        elif event_type == 'ChannelStateChange':
             status = f'{event_type}#{event.get("channel").get("state")}'
 
         elif event_type == 'Dial':
@@ -115,7 +134,10 @@ class TriggerEvent:
 
     @staticmethod
     def get_value_from_event(event: dict, event_type: str):
-        if event_type == 'ChannelDtmfReceived':
+        if event_type == 'ExternalEvent':
+            return event.get('value')
+
+        elif event_type == 'ChannelDtmfReceived':
             return event.get("digit")
 
         elif event_type in 'ChannelStateChange':

@@ -81,7 +81,7 @@ class Dialer(object):
             raw_dialplan = self.get_raw_dialplan('redir1_end8')
             room_config = Config(self.config.join_config)  # Each room has its own Config
 
-            lead = self.queue_lead.pop()
+            lead = self.queue_lead.pop(0)  # get and remove first lead from queue
             if self.rooms.get(lead.lead_id) is not None:
                 self.log.error(f'Room with lead_id={lead.lead_id} already exists')
             else:

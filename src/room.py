@@ -29,7 +29,9 @@ class Room(object):
         self.room_id: str = f'{self.tag}-lead_id-{lead.lead_id}'
 
         self.log = logger.bind(object_id=self.room_id)
-        asyncio.create_task(self.add_tag_status(tag=self.tag, new_status=self.room_plan.status))
+        asyncio.create_task(self.add_tag_status(tag=self.tag,
+                                                new_status=self.room_plan.status,
+                                                value=f'actionid={lead.actionid}'))
 
     def __del__(self):
         self.log.debug('object has died')
@@ -37,14 +39,14 @@ class Room(object):
     async def add_tag_status(self,
                              tag: str,
                              new_status: str,
-                             asterisk_time: str = "",
+                             external_time: str = "",
                              trigger_time: str = "",
                              value: str = ""):
         """Stores tag status and run check triggers
 
         :param str tag: Object Tag
         :param str new_status: new status for tag
-        :param str asterisk_time: time from asterisk (if exist)
+        :param str external_time: time from asterisk or external service (if exist)
         :param str trigger_time: time from create trigger event after receive asterisk event (if exist)
         :param str value: Additional data
         :return: None
@@ -57,7 +59,7 @@ class Room(object):
 
         if self.tags_statuses[tag].get(new_status) is None:
             self.tags_statuses[tag][new_status] = {
-                "asterisk_time": asterisk_time,
+                "external_time": external_time,
                 "trigger_time": trigger_time,
                 "add_status_time": datetime.now().isoformat(),
                 "value": value,
@@ -65,7 +67,7 @@ class Room(object):
             }
         else:
             row_rewrite = {
-                "asterisk_time": asterisk_time,
+                "external_time": external_time,
                 "trigger_time": trigger_time,
                 "add_status_time": datetime.now().isoformat(),
                 "value": value
@@ -135,6 +137,6 @@ class Room(object):
     async def trigger_event_handler(self, trigger_event: TriggerEvent):
         await self.add_tag_status(trigger_event.tag,
                                   trigger_event.status,
-                                  trigger_event.asterisk_time,
+                                  trigger_event.external_time,
                                   trigger_event.trigger_time,
                                   trigger_event.value)

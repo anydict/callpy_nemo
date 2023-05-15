@@ -6,6 +6,7 @@ from fastapi import APIRouter
 from loguru import logger
 
 from src.config import Config
+from src.dataclasses.trigger_event import TriggerEvent
 from src.dialer import Dialer
 from fastapi.responses import Response
 
@@ -13,7 +14,7 @@ from src.lead import Lead
 from pydantic import BaseModel, ValidationError
 
 
-class Item(BaseModel):
+class OriginateParams(BaseModel):
     token: str
     intphone: int
     extphone: int
@@ -21,6 +22,11 @@ class Item(BaseModel):
     dir: str
     calleridrule: str
     actionid: str | None
+
+
+class HangupParams(BaseModel):
+    token: str
+    actionid: str
 
 
 class Routers(object):
@@ -40,6 +46,7 @@ class Routers(object):
         self.router.add_api_route("/rooms", self.get_rooms, methods=["GET"])
         self.router.add_api_route("/bridges", self.get_bridges, methods=["GET"])
         self.router.add_api_route("/chans", self.get_chans, methods=["GET"])
+        self.router.add_api_route("/hangup", self.hangup, methods=["DELETE"])
 
         self.router.add_api_route("/restart", self.restart, methods=["POST"])
         self.router.add_api_route("/originate", self.originate, methods=["POST"], tags=["originate"])
@@ -62,8 +69,8 @@ class Routers(object):
         for room in self.dialer.rooms.values():
             for tag in room.tags_statuses:
                 for status in room.tags_statuses[tag].values():
-                    if status.get('asterisk_time') != '':
-                        d1 = datetime.datetime.strptime(status.get('asterisk_time'),
+                    if status.get('external_time') != '':
+                        d1 = datetime.datetime.strptime(status.get('external_time'),
                                                         '%Y-%m-%dT%H:%M:%S.%f')
                         d2 = datetime.datetime.strptime(status.get('trigger_time'),
                                                         '%Y-%m-%dT%H:%M:%S.%f')
@@ -121,28 +128,53 @@ class Routers(object):
 
         return Response(content=json_str, media_type='application/json')
 
-    def originate(self, item: Item):
-        json_str = json.dumps({
-            "token": item.token,
-            "intphone": item.intphone,
-            "extphone": item.extphone,
-            "idclient": item.idclient,
-            "dir": dir,
-            "calleridrule": item.calleridrule,
-            "actionid": item.actionid
-        }, indent=4, default=str)
-
+    def originate(self, params: OriginateParams):
         if self.config.alive is False:
             return Response(status_code=503)
 
         lead = Lead({
-            "phone_specialist": str(item.intphone),
-            "phone_client": str(item.extphone)
+            "phone_specialist": str(params.intphone),
+            "phone_client": str(params.extphone),
+            "actionid": params.actionid
         })
+        for room in self.dialer.rooms.values():
+            if room.lead.actionid == params.actionid:
+                return Response(content='{"res": "ERROR", "msg": "such actionid has already been launched"}',
+                                media_type='application/json')
 
         self.dialer.queue_lead.append(lead)
 
+        json_str = json.dumps({
+            "token": params.token,
+            "intphone": params.intphone,
+            "extphone": params.extphone,
+            "idclient": params.idclient,
+            "dir": dir,
+            "calleridrule": params.calleridrule,
+            "actionid": lead.actionid
+        }, indent=4, default=str)
+
         return Response(content=json_str, media_type='application/json')
+
+    def hangup(self, params: HangupParams):
+        json_str = json.dumps({
+            "token": params.token,
+            "actionid": params.actionid
+        }, indent=4, default=str)
+
+        for room in self.dialer.rooms.values():
+            if room.lead.actionid == params.actionid:
+                event = TriggerEvent({
+                    "type": "ExternalEvent",
+                    "lead_id": room.lead_id,
+                    "tag": room.tag,
+                    "status": "api_hangup",
+                    "value": ""
+                })
+                self.dialer.queue_trigger_events.append(event)
+                return Response(content=json_str, media_type='application/json')
+
+        return Response(content='{"res": "ERROR", "msg": "Not found actionid"}', media_type='application/json')
 
     def extapi(self,
                token: str = '',
@@ -173,17 +205,26 @@ class Routers(object):
             return self.restart()
         elif cmd == 'originate':
             try:
-                item = Item(token=token,
-                            intphone=intphone,
-                            extphone=extphone,
-                            idclient=idclient,
-                            dir=dir,
-                            calleridrule=calleridrule,
-                            actionid=actionid)
+                params = OriginateParams(token=token,
+                                         intphone=intphone,
+                                         extphone=extphone,
+                                         idclient=idclient,
+                                         dir=dir,
+                                         calleridrule=calleridrule,
+                                         actionid=actionid)
             except ValidationError as e:
-                self.log.debug(f'ValidationError = {e} \n\njson_str = {json_str}')
+                self.log.debug(f'ValidationError = {e} \n\n json_str = {json_str}')
                 return Response(content='{"res": "ERROR", "msg": "Incorrect fields in request"}',
                                 media_type='application/json')
-            return self.originate(item)
+            return self.originate(params)
+        elif cmd == 'hangup':
+            try:
+                params = HangupParams(token=token,
+                                      actionid=actionid)
+            except ValidationError as e:
+                self.log.debug(f'ValidationError = {e} \n\n json_str = {json_str}')
+                return Response(content='{"res": "ERROR", "msg": "Incorrect fields in request"}',
+                                media_type='application/json')
+            return self.hangup(params)
 
         return Response(content=json_str, media_type='application/json')

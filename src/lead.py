@@ -1,12 +1,15 @@
 import datetime
 import re
 
+from loguru import logger
+
 
 class Lead(object):
     """The data needed for the call"""
 
     def __init__(self, params: dict):
-        self.lead_id: str = self.get_lead_id(params)
+        self.lead_id: str = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')
+        self.actionid: str = self.get_actionid(params)
         self.phone_specialist: str = str(params.get('phone_specialist', ''))
         self.phone_client: str = str(params.get('phone_client', ''))
         self.phone_prefix: str = str(params.get('phone_prefix', ''))
@@ -19,13 +22,18 @@ class Lead(object):
         self.operator_id: str = str(params.get('operator_id', ''))
         self.id_request: str = str(params.get('id_request', ''))
         # self.check_params()
+        self.log = logger.bind(object_id=f'lead-{self.lead_id}')
 
-    def get_lead_id(self, params):
-        lead_id = str(params.get('lead_id', ''))
-        if lead_id == '' or lead_id is None:
-            lead_id = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')
+    def __del__(self):
+        self.log.debug('object has died')
 
-        return lead_id
+    @staticmethod
+    def get_actionid(params):
+        actionid = str(params.get('actionid', ''))
+        if actionid == '' or actionid is None:
+            actionid = 'TESTER-' + datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')
+
+        return actionid
 
     def check_params(self):
         if re.match(r"^[^0-9]+$", self.phone_client) or len(self.phone_client) == 0:
