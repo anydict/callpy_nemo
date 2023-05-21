@@ -23,8 +23,20 @@
       "active": true
     },
     {
+      "trigger_tag": "client",
+      "trigger_status": "stop",
+      "action": "terminate",
+      "active": true
+    },
+    {
       "trigger_tag": "specialist",
       "trigger_status": "StasisEnd",
+      "action": "terminate",
+      "active": true
+    },
+    {
+      "trigger_tag": "specialist",
+      "trigger_status": "stop",
       "action": "terminate",
       "active": true
     }
@@ -42,14 +54,8 @@
           "active": true
         },
         {
-          "trigger_tag": "specialist",
-          "trigger_status": "StasisEnd",
-          "action": "terminate",
-          "active": true
-        },
-        {
-          "trigger_tag": "client",
-          "trigger_status": "StasisEnd",
+          "trigger_tag": "room",
+          "trigger_status": "stop",
           "action": "terminate",
           "active": true
         }
@@ -101,8 +107,8 @@
           "active": true
         },
         {
-          "trigger_tag": "specialist",
-          "trigger_status": "StasisEnd",
+          "trigger_tag": "room",
+          "trigger_status": "stop",
           "action": "terminate",
           "active": true
         }
@@ -154,8 +160,8 @@
           "active": true
         },
         {
-          "trigger_tag": "client",
-          "trigger_status": "StasisEnd",
+          "trigger_tag": "room",
+          "trigger_status": "stop",
           "action": "terminate",
           "active": true
         }

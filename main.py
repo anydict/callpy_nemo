@@ -49,7 +49,7 @@ if os.path.isfile('config.json'):
 
 config = Config(join_config=join_config)
 app = FastAPI()
-dialer = Dialer(config=config, app='anydict')
+dialer = Dialer(config=config, app=config.app)
 routers = Routers(config=config, dialer=dialer)
 
 

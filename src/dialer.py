@@ -72,7 +72,7 @@ class Dialer(object):
         self.log.info(f"Peers: {peers}")
         self.log.info(f"Subscribe: {subscribe}")
 
-        # run new call until receive "restart" request (see routes.py)
+        # run new call until receive "restart" request (see api/routes.py)
         while self.config.shutdown is False:
             if len(self.queue_lead) == 0:
                 await asyncio.sleep(0.1)

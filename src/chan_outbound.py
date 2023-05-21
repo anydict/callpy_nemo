@@ -13,7 +13,7 @@ class ChanOutbound(Chan):
         if dial_option_name not in self.room.lead.dial_options:
             error = f'No found dial_option_name={dial_option_name} in lead.dial_options'
             self.log.error(error)
-            await self.add_status_chan('api_error', error)
+            await self.add_status_chan('api_error', value=error)
             await self.add_status_chan('stop')
             return
 
@@ -34,5 +34,5 @@ class ChanOutbound(Chan):
             self.log.info(dial_chan_response)
 
         else:
-            await self.add_status_chan('api_error', create_chan_response.get('message'))
+            await self.add_status_chan('api_error', value=create_chan_response.get('message'))
             await self.add_status_chan('stop')

@@ -25,5 +25,5 @@ class ChanEmedia(Chan):
                 self.log.info(chan2bridge_response)
 
             else:
-                await self.add_status_chan('api_error')
+                await self.add_status_chan('api_error', value=create_chan_response.get('message'))
                 await self.add_status_chan('stop')
