@@ -12,7 +12,7 @@ class ChanSnoop(Chan):
 
     async def start_chan(self):
         self.log.info('start ChanSnoop')
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.1)
         self.target_chan_tag = self.params.get('target_chan_tag')
 
         if self.target_chan_tag not in self.room.tags_statuses:
