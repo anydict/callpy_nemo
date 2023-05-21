@@ -6,7 +6,8 @@ class Config(object):
                'asterisk_host': '127.0.0.1',
                'asterisk_port': '8088',
                'asterisk_login': 'asterisk',
-               'asterisk_password': 'asterisk'}
+               'asterisk_password': 'asterisk',
+               'server_name': 'callpy'}
 
     def __init__(self, join_config: dict):
         self.join_config: dict = join_config
@@ -20,6 +21,7 @@ class Config(object):
         self.asterisk_port: int = int(self.new_config['asterisk_port'])
         self.asterisk_login: str = str(self.new_config['asterisk_login'])
         self.asterisk_password: str = str(self.new_config['asterisk_password'])
+        self.server_name: str = str(self.new_config['server_name'])
 
 
 if __name__ == "__main__":

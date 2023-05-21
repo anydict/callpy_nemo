@@ -27,14 +27,14 @@ class Bridge(object):
         self.tag = bridge_plan.tag
         self.bridge_id = f'{self.tag}-id-{self.lead_id}'
         self.log = logger.bind(object_id=self.bridge_id)
-        asyncio.create_task(self.add_status_bridge(bridge_plan.status))
+        asyncio.create_task(self.add_status_bridge(bridge_plan.status, value=self.bridge_id))
 
     def __del__(self):
         self.log.debug('object has died')
 
-    async def add_status_bridge(self, new_status):
+    async def add_status_bridge(self, new_status, value: str = ''):
         new_status = new_status.upper()  # precaution
-        await self.room.add_tag_status(self.tag, new_status)
+        await self.room.add_tag_status(self.tag, new_status=new_status, value=value)
 
     async def chan_termination_handler(self):
         if self.config.alive:

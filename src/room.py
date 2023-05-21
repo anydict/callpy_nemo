@@ -31,7 +31,7 @@ class Room(object):
         self.log = logger.bind(object_id=self.room_id)
         asyncio.create_task(self.add_tag_status(tag=self.tag,
                                                 new_status=self.room_plan.status,
-                                                value=f'actionid={lead.actionid}'))
+                                                value=self.room_id))
 
     def __del__(self):
         self.log.debug('object has died')

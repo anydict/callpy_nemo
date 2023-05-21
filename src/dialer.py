@@ -78,10 +78,10 @@ class Dialer(object):
                 await asyncio.sleep(0.1)
                 continue
 
-            raw_dialplan = self.get_raw_dialplan('redir1_end8')
+            lead = self.queue_lead.pop(0)  # get and remove first lead from queue
+            raw_dialplan = self.get_raw_dialplan(lead.dialplan_name)
             room_config = Config(self.config.join_config)  # Each room has its own Config
 
-            lead = self.queue_lead.pop(0)  # get and remove first lead from queue
             if self.rooms.get(lead.lead_id) is not None:
                 self.log.error(f'Room with lead_id={lead.lead_id} already exists')
             else:

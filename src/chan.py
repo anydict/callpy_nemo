@@ -24,7 +24,7 @@ class Chan(object):
         self.chan_id = f'{self.tag}-id-{self.lead_id}'
 
         self.log = logger.bind(object_id=self.chan_id)
-        asyncio.create_task(self.add_status_chan(chan_plan.status))
+        asyncio.create_task(self.add_status_chan(chan_plan.status, value=self.chan_id))
 
     def __del__(self):
         self.log.debug('object has died')

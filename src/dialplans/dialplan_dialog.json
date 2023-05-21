@@ -59,6 +59,9 @@
           "type": "chan_outbound",
           "tag": "specialist",
           "status": "init",
+          "params": {
+            "dial_option_name": "intphone"
+          },
           "triggers": [
             {
               "trigger_tag": "bridge_main",
@@ -72,6 +75,9 @@
           "type": "chan_outbound",
           "tag": "client",
           "status": "init",
+          "params": {
+            "dial_option_name": "extphone"
+          },
           "triggers": [
             {
               "trigger_tag": "specialist",

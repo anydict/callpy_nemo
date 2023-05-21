@@ -1,5 +1,6 @@
 import datetime
 import json
+import re
 from statistics import fmean
 
 from fastapi import APIRouter
@@ -132,11 +133,14 @@ class Routers(object):
         if self.config.alive is False:
             return Response(status_code=503)
 
-        lead = Lead({
-            "phone_specialist": str(params.intphone),
-            "phone_client": str(params.extphone),
-            "actionid": params.actionid
-        })
+        system_prefix = re.findall('^[A-z]+', params.actionid)
+        if len(system_prefix) == 0:
+            system_prefix = 'TESTER'
+
+        lead = Lead(actionid=params.actionid, dialplan_name='redir1_end8', system_prefix=system_prefix)
+        lead.add_dial_option_for_phone('extphone', phone=str(params.extphone), callerid=str(params.intphone))
+        lead.add_dial_option_for_phone('intphone', phone=str(params.intphone))
+
         for room in self.dialer.rooms.values():
             if room.lead.actionid == params.actionid:
                 return Response(content='{"res": "ERROR", "msg": "such actionid has already been launched"}',
