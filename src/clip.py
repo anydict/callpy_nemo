@@ -10,10 +10,11 @@ from src.dataclasses.dialplan import Dialplan
 class Clip(object):
     """For work Playback on channel"""
 
-    def __init__(self, ari: ARI, config: Config, room, clip_plan: Dialplan):
+    def __init__(self, ari: ARI, config: Config, room, chan_id: str, clip_plan: Dialplan):
         self.ari = ari
         self.config = config
         self.room = room
+        self.chan_id = chan_id
         self.lead_id = room.lead_id
         self.clip_plan: list[Dialplan] = clip_plan.content
         self.tag = clip_plan.tag
@@ -29,6 +30,17 @@ class Clip(object):
         await self.room.add_tag_status(self.tag, new_status, value=value)
 
     async def start_clip(self):
-        await self.add_status_clip('ready')
-        while self.config.alive:
-            await asyncio.sleep(4)
+        self.log.info('start clip')
+        start_playback_response = await self.ari.start_playback(chan_id=self.chan_id,
+                                                                clip_id=self.clip_id,
+                                                                name_audio="sound:hello")
+
+        self.log.info(start_playback_response)
+
+        start_playback_response = await self.ari.start_playback(chan_id=self.chan_id,
+                                                                clip_id=self.clip_id,
+                                                                name_audio="sound:hello")
+
+        self.log.info(start_playback_response)
+
+        await self.add_status_clip('api_send')

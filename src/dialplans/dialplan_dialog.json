@@ -1,5 +1,6 @@
 {
   "tag": "room",
+  "name": "redir1_end8",
   "type": "room",
   "status": "init",
   "timeout": 600,

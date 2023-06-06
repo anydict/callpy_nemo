@@ -54,6 +54,7 @@ class Chan(object):
                     clip = Clip(ari=self.ari,
                                 config=self.config,
                                 room=self.room,
+                                chan_id=self.chan_id,
                                 clip_plan=clip_plan)
                     self.clips.append(clip)
                     asyncio.create_task(clip.start_clip())

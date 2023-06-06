@@ -135,6 +135,22 @@ class APIHandler(object):
                               'POST', {'timeout': 60})
         return res
 
+    async def start_playback(self, chan_id: str, clip_id: str, name_audio: str, lang: str = 'en', offsetms: int = 0,
+                             skipms: int = 3000):
+        # media: string - (required) Media URIs to play. Allows comma separated values.
+        # lang: string - For sounds, selects language for sound.
+        # offsetms: int - Number of milliseconds to skip before playing. Only applies to the first URI if multiple media URIs are specified.
+        # skipms: int - Number of milliseconds to skip for forward/reverse operations. Default: 3000
+        # playbackId: string - Playback ID.
+
+        res = await self.send(f'{self._url}/channels/{chan_id}/play',
+                              'POST', {'media': name_audio,
+                                       "lang": lang,
+                                       "offsetms": offsetms,
+                                       "skipms": skipms,
+                                       "playbackId": clip_id})
+        return res
+
     async def create_chan_originate(self, chan_id: str, endpoint: str, callerid: str):
         res = await self.send(f'{self._url}/channels/{chan_id}',
                               'POST', {'channelId': chan_id,

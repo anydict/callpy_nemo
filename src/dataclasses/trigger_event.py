@@ -74,6 +74,10 @@ class TriggerEvent:
             if '-id-' in event.get('bridge').get('id'):
                 tag = event.get('bridge').get('id').split('-id-')[0]
 
+        elif event_type in ('PlaybackStarted', 'PlaybackFinished'):
+            if '-id-' in event.get('playback').get('id'):
+                tag = event.get('playback').get('id').split('-id-')[0]
+
         return tag
 
     @staticmethod
@@ -99,6 +103,10 @@ class TriggerEvent:
         elif event_type in ('BridgeCreated', 'ChannelEnteredBridge', 'ChannelLeftBridge', 'BridgeDestroyed'):
             if '-id-' in event.get('bridge').get('id'):
                 lead_id = event.get('bridge').get('id').split('-id-')[1]
+
+        elif event_type in ('PlaybackStarted', 'PlaybackFinished'):
+            if '-id-' in event.get('playback').get('id'):
+                lead_id = event.get('playback').get('id').split('-id-')[1]
 
         return lead_id
 
@@ -127,6 +135,9 @@ class TriggerEvent:
         elif event_type == 'ChannelDtmfReceived':
             status = f'{event_type}#{event.get("digit")}'
 
+        elif event_type in ('PlaybackStarted', 'PlaybackFinished'):
+            status = event_type
+
         else:
             status = event_type
 
@@ -148,6 +159,9 @@ class TriggerEvent:
 
         elif event_type in 'Dial':
             return event.get('dialstring')
+
+        elif event_type in ('PlaybackStarted'):
+            return event.get('playback').get('media_uri') or ''
 
         else:
             return ""
