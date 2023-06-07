@@ -33,12 +33,15 @@ class Clip(object):
     async def start_clip(self):
         self.log.info('start clip')
         audio_name = self.params.get('audio_name', None)
-        start_playback_response = await self.ari.start_playback(chan_id=self.chan_id,
-                                                                clip_id=self.clip_id,
-                                                                name_audio=f"sound:{audio_name}")
+        if audio_name is not None and len(audio_name) > 0:
+            start_playback_response = await self.ari.start_playback(chan_id=self.chan_id,
+                                                                    clip_id=self.clip_id,
+                                                                    name_audio=f"sound:{audio_name}")
 
-        self.log.info(start_playback_response)
-        await self.add_status_clip('api_send')
+            self.log.info(start_playback_response)
+            await self.add_status_clip('api_send')
+        else:
+            await self.add_status_clip('error_in_audio_name')
 
     async def stop_clip(self):
         self.log.info('stop_clip')
