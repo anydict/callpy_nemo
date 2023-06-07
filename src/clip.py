@@ -18,6 +18,7 @@ class Clip(object):
         self.lead_id = room.lead_id
         self.clip_plan: list[Dialplan] = clip_plan.content
         self.tag = clip_plan.tag
+        self.params: dict = clip_plan.params
         self.clip_id = f'{self.tag}-id-{self.lead_id}'
 
         self.log = logger.bind(object_id=self.clip_id)
@@ -31,16 +32,15 @@ class Clip(object):
 
     async def start_clip(self):
         self.log.info('start clip')
+        audio_name = self.params.get('audio_name', None)
         start_playback_response = await self.ari.start_playback(chan_id=self.chan_id,
                                                                 clip_id=self.clip_id,
-                                                                name_audio="sound:hello")
+                                                                name_audio=f"sound:{audio_name}")
 
         self.log.info(start_playback_response)
-
-        start_playback_response = await self.ari.start_playback(chan_id=self.chan_id,
-                                                                clip_id=self.clip_id,
-                                                                name_audio="sound:hello")
-
-        self.log.info(start_playback_response)
-
         await self.add_status_clip('api_send')
+
+    async def stop_clip(self):
+        self.log.info('stop_clip')
+        stop_playback_response = await self.ari.stop_playback(clip_id=self.clip_id)
+        self.log.info(stop_playback_response)

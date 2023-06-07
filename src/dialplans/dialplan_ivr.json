@@ -88,14 +88,23 @@
               "type": "clip",
               "tag": "ivr_clip",
               "status": "init",
-              "wait_before": 1,
-              "wait_after": 6,
-              "repeat": 1,
+              "params": {
+                "wait_before": 1,
+                "wait_after": 6,
+                "repeat": 1,
+                "audio_name": "custom/ivrclip_redir1_noclip8"
+              },
               "triggers": [
                 {
                   "trigger_tag": "client",
                   "trigger_status": "Dial#ANSWER",
                   "action": "start",
+                  "active": true
+                },
+                {
+                  "trigger_tag": "clip_button_1",
+                  "trigger_status": "init",
+                  "action": "terminate",
                   "active": true
                 }
               ]
@@ -104,9 +113,12 @@
               "type": "clip",
               "tag": "clip_button_1",
               "status": "init",
-              "wait_before": 1,
-              "wait_after": 1,
-              "repeat": 1,
+              "params": {
+                "wait_before": 1,
+                "wait_after": 1,
+                "repeat": 1,
+                "audio_name": "hello"
+              },
               "triggers": [
                 {
                   "trigger_tag": "client",
@@ -120,9 +132,12 @@
               "type": "clip",
               "tag": "clip_button_8",
               "status": "init",
-              "wait_before": 1,
-              "wait_after": 1,
-              "repeat": 1,
+              "params": {
+                "wait_before": 1,
+                "wait_after": 1,
+                "repeat": 1,
+                "audio_name": "goodbye"
+              },
               "triggers": [
                 {
                   "trigger_tag": "client",

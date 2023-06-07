@@ -15,7 +15,7 @@ from src.dataclasses.dialplan import Dialplan
 class Bridge(object):
     """He runs channels and check chans triggers"""
 
-    chans: list[Chan] = []
+    chans: dict[str, Chan] = {}
 
     def __init__(self, ari: ARI, config: Config, room, bridge_plan: Dialplan):
         self.ari = ari
@@ -39,13 +39,13 @@ class Bridge(object):
     async def chan_termination_handler(self):
         if self.config.alive:
             chan_for_remove = []
-            for chan in self.chans:
+            for chan_tag, chan in self.chans.items():
                 await chan.clip_termination_handler()
-                chan_for_remove.append(chan)
+                chan_for_remove.append(chan_tag)
 
-            for chan in chan_for_remove:
-                self.chans.remove(chan)
-                self.log.debug(f'remove chan with tag={chan.tag} from memory')
+            for chan_tag in chan_for_remove:
+                self.chans.pop(chan_tag)
+                self.log.debug(f'remove chan with tag={chan_tag} from memory')
             del chan_for_remove
 
     async def check_trigger_chans(self):
@@ -86,13 +86,13 @@ class Bridge(object):
                                                 room=self.room,
                                                 bridge_id=self.bridge_id,
                                                 chan_plan=chan_plan)
-                        self.chans.append(chan)
+                        self.chans[chan.tag] = chan
                         asyncio.create_task(chan.start_chan())
         except Exception as e:
             self.log.exception(e)
             self.log.error(f'e={e}')
 
-        for chan in self.chans:
+        for chan in self.chans.values():
             await chan.check_trigger_clips()
 
     async def start_bridge(self):

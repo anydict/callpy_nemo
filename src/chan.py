@@ -10,7 +10,7 @@ from src.dataclasses.dialplan import Dialplan
 
 class Chan(object):
     """This class only for inheritance!"""
-    clips: list[Clip] = []
+    clips: dict[str, Clip] = {}
 
     def __init__(self, ari: ARI, config: Config, room, bridge_id: str, chan_plan: Dialplan):
         self.ari = ari
@@ -35,30 +35,37 @@ class Chan(object):
     async def clip_termination_handler(self):
         if self.config.alive:
             clip_for_remove = []
-            for clip in self.clips:
-                clip_for_remove.append(clip)
+            for clip_tag, clip in self.clips.items():
+                clip_for_remove.append(clip_tag)
 
-            for clip in clip_for_remove:
-                self.clips.remove(clip)
-                self.log.debug(f'remove clip with tag={clip.tag} from memory')
+            for clip_tag in clip_for_remove:
+                self.clips.pop(clip_tag)
+                self.log.debug(f'remove clip with tag={clip_tag} from memory')
             del clip_for_remove
 
     async def check_trigger_clips(self):
         for clip_plan in self.clips_plan:
 
-            if clip_plan.tag in [clip.tag for clip in self.clips]:
-                continue
-
-            for trigger in clip_plan.triggers:
-                if trigger.trigger_status in self.room.tags_statuses.get(trigger.trigger_tag, []):
-                    clip = Clip(ari=self.ari,
-                                config=self.config,
-                                room=self.room,
-                                chan_id=self.chan_id,
-                                clip_plan=clip_plan)
-                    self.clips.append(clip)
-                    asyncio.create_task(clip.start_clip())
-                    pass
+            if clip_plan.tag in [clip.tag for clip in self.clips.values()]:
+                # check terminate trigger if clip already exist
+                for trigger in [trg for trg in clip_plan.triggers if trg.action == 'terminate' and trg.active]:
+                    # check match the status of the object being monitored by the trigger
+                    if trigger.trigger_status in self.room.tags_statuses.get(trigger.trigger_tag, []):
+                        trigger.active = False
+                        await self.clips[clip_plan.tag].stop_clip()
+            else:
+                # check start trigger if clip does not exist
+                for trigger in [trg for trg in clip_plan.triggers if trg.action == 'start' and trg.active]:
+                    if trigger.trigger_status in self.room.tags_statuses.get(trigger.trigger_tag, []):
+                        trigger.active = False
+                        clip = Clip(ari=self.ari,
+                                    config=self.config,
+                                    room=self.room,
+                                    chan_id=self.chan_id,
+                                    clip_plan=clip_plan)
+                        self.clips[clip.tag] = clip
+                        asyncio.create_task(clip.start_clip())
+                        pass
 
     async def start_chan(self):
         """Implement your own function start_chan in inherited classes"""

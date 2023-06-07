@@ -115,7 +115,7 @@ class Room(object):
             if bridge_plan.tag in [bridge.tag for bridge in self.bridges.values()]:
                 # check terminate trigger if bridge already exist
                 for trigger in [trg for trg in bridge_plan.triggers if trg.action == 'terminate' and trg.active]:
-                    # check compliance the status of the object being monitored by the trigger
+                    # check match the status of the object being monitored by the trigger
                     if trigger.trigger_status in self.tags_statuses.get(trigger.trigger_tag, []):
                         trigger.active = False
                         await self.bridges[bridge_plan.tag].destroy_bridge()

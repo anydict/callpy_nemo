@@ -163,5 +163,8 @@ class TriggerEvent:
         elif event_type in ('PlaybackStarted'):
             return event.get('playback').get('media_uri') or ''
 
+        elif event_type in ('PlaybackFinished'):
+            return event.get('playback').get('state') or ''
+
         else:
             return ""

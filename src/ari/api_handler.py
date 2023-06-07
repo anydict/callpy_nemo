@@ -139,7 +139,8 @@ class APIHandler(object):
                              skipms: int = 3000):
         # media: string - (required) Media URIs to play. Allows comma separated values.
         # lang: string - For sounds, selects language for sound.
-        # offsetms: int - Number of milliseconds to skip before playing. Only applies to the first URI if multiple media URIs are specified.
+        # offsetms: int - Number of milliseconds to skip before playing.
+        #                 Only applies to the first URI if multiple media URIs are specified.
         # skipms: int - Number of milliseconds to skip for forward/reverse operations. Default: 3000
         # playbackId: string - Playback ID.
 
@@ -149,6 +150,10 @@ class APIHandler(object):
                                        "offsetms": offsetms,
                                        "skipms": skipms,
                                        "playbackId": clip_id})
+        return res
+
+    async def stop_playback(self, clip_id: str):
+        res = await self.send(f'{self._url}/playbacks/{clip_id}', 'DELETE', {})
         return res
 
     async def create_chan_originate(self, chan_id: str, endpoint: str, callerid: str):
