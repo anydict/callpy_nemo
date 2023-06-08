@@ -1,5 +1,4 @@
 import json
-import uuid
 from datetime import datetime
 
 from aiohttp import ClientConnectorError
@@ -33,7 +32,11 @@ class ChanEmedia(Chan):
 
     async def report_start_em(self):
         statuses = self.room.tags_statuses.get(self.tag)
-        if statuses is None:
+        if statuses is None \
+                or statuses.get('ChannelVarset#UNICASTRTP_LOCAL_ADDRESS') is None \
+                or statuses.get('ChannelVarset#UNICASTRTP_LOCAL_PORT') is None:
+            self.log.error(f'invalid statuses')
+            self.log.error(statuses)
             return
 
         try:
@@ -73,7 +76,8 @@ class ChanEmedia(Chan):
             params = {
                 'event': 'start_em',
                 'chan_id': self.chan_id,
-                'current_time': datetime.now().isoformat()
+                'current_time': datetime.now().isoformat(),
+                'params': {}
             }
             async with aiohttp.ClientSession() as session:
                 status, data = await self.fetch_json(session, url, params)
