@@ -21,11 +21,11 @@ class Bridge(object):
         self.ari = ari
         self.config = config
         self.room = room
-        self.lead_id = room.lead_id
+        self.druid = room.druid
         self.bridge_plan: Dialplan = bridge_plan
         self.chan_plan: list[Dialplan] = bridge_plan.content
         self.tag = bridge_plan.tag
-        self.bridge_id = f'{self.tag}-id-{self.lead_id}'
+        self.bridge_id = f'{self.tag}-id-{self.druid}'
         self.log = logger.bind(object_id=self.bridge_id)
         asyncio.create_task(self.add_status_bridge(bridge_plan.status, value=self.bridge_id))
 
@@ -93,13 +93,14 @@ class Bridge(object):
 
         for chan in self.chans.values():
             await chan.check_trigger_clips()
+            await chan.check_trigger_chan_funcs()
 
     async def start_bridge(self):
         self.log.info('start_bridge')
         create_bridge_response = await self.ari.create_bridge(bridge_id=self.bridge_id)
-        await self.add_status_bridge('api_create_bridge', value=create_bridge_response.get('http_code'))
+        await self.add_status_bridge('api_create_bridge', value=str(create_bridge_response.get('http_code')))
 
     async def destroy_bridge(self):
         self.log.info('destroy_bridge')
         destroy_bridge_response = await self.ari.destroy_bridge(bridge_id=self.bridge_id)
-        await self.add_status_bridge('api_destroy_bridge', value=destroy_bridge_response.get('http_code'))
+        await self.add_status_bridge('api_destroy_bridge', value=str(destroy_bridge_response.get('http_code')))

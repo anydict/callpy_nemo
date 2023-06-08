@@ -14,7 +14,7 @@ class TriggerEvent:
     trigger_time: str
     delay: float
     tag: str
-    lead_id: str
+    druid: str
     status: str
     value: str
 
@@ -28,7 +28,7 @@ class TriggerEvent:
         self.delay: float = self.calc_delay()
 
         self.tag: str = self.get_tag_from_event(event, self.event_type)
-        self.lead_id: str = self.get_lead_id_from_event(event, self.event_type)
+        self.druid: str = self.get_druid_from_event(event, self.event_type)
         self.status: str = self.get_status_from_event(event, self.event_type)
         self.value: str = self.get_value_from_event(event, self.event_type)
 
@@ -81,10 +81,10 @@ class TriggerEvent:
         return tag
 
     @staticmethod
-    def get_lead_id_from_event(event: dict, event_type: str):
-        lead_id = UNKNOWN
+    def get_druid_from_event(event: dict, event_type: str):
+        druid = UNKNOWN
         if event_type == 'ExternalEvent':
-            lead_id = event.get('lead_id')
+            druid = event.get('druid')
         elif event_type in ('ChannelDialplan',
                             'ChannelCreated',
                             'ChannelVarset',
@@ -95,20 +95,20 @@ class TriggerEvent:
                             'StasisStart',
                             'StasisEnd'):
             if '-id-' in event.get('channel').get('id'):
-                lead_id = event.get('channel').get('id').split('-id-')[1]
+                druid = event.get('channel').get('id').split('-id-')[1]
 
         elif event_type == 'Dial' and '-id-' in event.get('peer').get('id'):
-            lead_id = event.get('peer').get('id').split('-id-')[1]
+            druid = event.get('peer').get('id').split('-id-')[1]
 
         elif event_type in ('BridgeCreated', 'ChannelEnteredBridge', 'ChannelLeftBridge', 'BridgeDestroyed'):
             if '-id-' in event.get('bridge').get('id'):
-                lead_id = event.get('bridge').get('id').split('-id-')[1]
+                druid = event.get('bridge').get('id').split('-id-')[1]
 
         elif event_type in ('PlaybackStarted', 'PlaybackFinished'):
             if '-id-' in event.get('playback').get('id'):
-                lead_id = event.get('playback').get('id').split('-id-')[1]
+                druid = event.get('playback').get('id').split('-id-')[1]
 
-        return lead_id
+        return druid
 
     @staticmethod
     def get_status_from_event(event: dict, event_type: str):

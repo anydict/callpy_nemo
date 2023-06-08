@@ -15,11 +15,11 @@ class Clip(object):
         self.config = config
         self.room = room
         self.chan_id = chan_id
-        self.lead_id = room.lead_id
-        self.clip_plan: list[Dialplan] = clip_plan.content
+        self.druid = room.druid
+        self.clip_plan: Dialplan = clip_plan
         self.tag = clip_plan.tag
         self.params: dict = clip_plan.params
-        self.clip_id = f'{self.tag}-id-{self.lead_id}'
+        self.clip_id = f'{self.tag}-id-{self.druid}'
 
         self.log = logger.bind(object_id=self.clip_id)
         asyncio.create_task(self.add_status_clip(clip_plan.status, value=self.clip_id))
@@ -30,6 +30,28 @@ class Clip(object):
     async def add_status_clip(self, new_status, value: str = ''):
         await self.room.add_tag_status(self.tag, new_status, value=value)
 
+    async def check_fully_playback(self):
+        if 'PlaybackFinished' in self.room.tags_statuses.get(self.tag, []):
+            if 'api_stop_playback' not in self.room.tags_statuses.get(self.tag, []):
+                await self.add_status_clip('fully_playback', value='True')
+                return True
+            else:
+                return False
+        else:
+            return False
+
+    async def check_trigger_clip_funcs(self):
+        for trigger in [trg for trg in self.clip_plan.triggers if trg.action == 'func'
+                                                                  and trg.active
+                                                                  and trg.func is not None]:
+            if trigger.trigger_status in self.room.tags_statuses.get(trigger.trigger_tag, []):
+                trigger.active = False
+                if trigger.func == 'check_fully_playback':
+                    await self.check_fully_playback()
+                else:
+                    self.log.info(f'no found func={trigger.func}')
+                    pass
+
     async def start_clip(self):
         self.log.info('start clip')
         audio_name = self.params.get('audio_name', None)
@@ -38,11 +60,11 @@ class Clip(object):
                                                                     clip_id=self.clip_id,
                                                                     name_audio=f"sound:{audio_name}")
 
-            await self.add_status_clip('api_start_playback', value=start_playback_response.get('http_code'))
+            await self.add_status_clip('api_start_playback', value=str(start_playback_response.get('http_code')))
         else:
             await self.add_status_clip('error_in_audio_name')
 
     async def stop_clip(self):
         self.log.info('stop_clip')
         stop_playback_response = await self.ari.stop_playback(clip_id=self.clip_id)
-        await self.add_status_clip('api_stop_playback', value=stop_playback_response.get('http_code'))
+        await self.add_status_clip('api_stop_playback', value=str(stop_playback_response.get('http_code')))

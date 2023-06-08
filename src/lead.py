@@ -1,5 +1,6 @@
 import datetime
 import re
+import uuid
 
 from loguru import logger
 
@@ -9,20 +10,20 @@ from src.dataclasses.dial_option import DialOption
 class Lead(object):
     """The data needed for the call"""
 
-    def __init__(self, actionid: str, dialplan_name: str, system_prefix: str = 'TESTER'):
-        self.lead_id: str = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')  # unique id in current instance
+    def __init__(self, actionid: str, app: str, dialplan_name: str, system_prefix: str = 'TESTER'):
+        self.druid: str = f'{app}:{uuid.uuid4().hex}'
         self.system_prefix = system_prefix
         self.actionid: str = self.get_actionid(actionid)  # id from external service
         self.dialplan_name: str = dialplan_name
         self.dial_options: dict[str, DialOption] = {}
-        self.log = logger.bind(object_id=f'lead-{self.lead_id}')
+        self.log = logger.bind(object_id=f'lead-{self.druid}')
 
     def __del__(self):
         self.log.debug('object has died')
 
     def get_actionid(self, actionid):
         if str(actionid) == '' or actionid is None:
-            actionid = self.system_prefix + self.lead_id
+            actionid = self.system_prefix + self.druid
 
         return actionid
 

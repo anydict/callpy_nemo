@@ -107,9 +107,9 @@ class Routers(object):
     def get_chans(self):
         chans = []
         for room in self.dialer.rooms:
-            for bridge in self.dialer.rooms[room].bridges:
-                for chan in self.dialer.rooms[room].bridges[bridge].chans:
-                    chans.append(chan.chan_id)
+            for bridge in self.dialer.rooms[room].bridges.values():
+                for chan in bridge.chans.values():
+                    chans.append(chan)
 
         json_str = json.dumps({"chans": chans}, indent=4, default=str)
 
@@ -137,8 +137,14 @@ class Routers(object):
         if len(system_prefix) == 0:
             system_prefix = 'TESTER'
 
-        # lead = Lead(actionid=params.actionid, dialplan_name='redir1_end8', system_prefix=system_prefix)
-        lead = Lead(actionid=params.actionid, dialplan_name='specialist_client', system_prefix=system_prefix)
+        # lead = Lead(actionid=params.actionid,
+        #             pp=self.config.app,
+        #             dialplan_name='redir1_end8',
+        #             system_prefix=system_prefix)
+        lead = Lead(actionid=params.actionid,
+                    app=self.config.app,
+                    dialplan_name='specialist_client',
+                    system_prefix=system_prefix)
         lead.add_dial_option_for_phone('extphone', phone=str(params.extphone), callerid=str(params.intphone))
         lead.add_dial_option_for_phone('intphone', phone=str(params.intphone))
 
@@ -171,7 +177,7 @@ class Routers(object):
             if room.lead.actionid == params.actionid:
                 event = TriggerEvent({
                     "type": "ExternalEvent",
-                    "lead_id": room.lead_id,
+                    "druid": room.druid,
                     "tag": room.tag,
                     "status": "api_hangup",
                     "value": ""

@@ -7,6 +7,7 @@ class Trigger(object):
         self.trigger_status: str = trigger_raw.get('trigger_status', 'unknown')
         self.action: str = trigger_raw.get('action', 'unknown')
         self.active: bool = trigger_raw.get('active', True)
+        self.func: bool = trigger_raw.get('func', None)
 
 
 @dataclass

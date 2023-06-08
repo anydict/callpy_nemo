@@ -17,11 +17,12 @@ class Chan(object):
         self.config = config
         self.room = room
         self.bridge_id = bridge_id
-        self.lead_id = self.room.lead_id
+        self.druid = self.room.druid
+        self.chan_plan = chan_plan
         self.clips_plan: list[Dialplan] = chan_plan.content
         self.tag = chan_plan.tag
         self.params: dict = chan_plan.params
-        self.chan_id = f'{self.tag}-id-{self.lead_id}'
+        self.chan_id = f'{self.tag}-id-{self.druid}'
 
         self.log = logger.bind(object_id=self.chan_id)
         asyncio.create_task(self.add_status_chan(chan_plan.status, value=self.chan_id))
@@ -67,7 +68,14 @@ class Chan(object):
                         asyncio.create_task(clip.start_clip())
                         pass
 
+        for clip in self.clips.values():
+            await clip.check_trigger_clip_funcs()
+
     async def start_chan(self):
         """Implement your own function start_chan in inherited classes"""
 
         self.log.error('This class only for inheritance!')
+
+    async def check_trigger_chan_funcs(self):
+        """Implement your own function check_trigger_chan_funcs in inherited classes"""
+        pass

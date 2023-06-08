@@ -20,13 +20,13 @@ class Room(object):
 
         self.ari: ARI = ari
         self.config: Config = config
-        self.lead_id: str = lead.lead_id
+        self.druid: str = lead.druid
         self.lead: Lead = lead
         self.room_plan: Dialplan = Dialplan(raw_dialplan=raw_dialplan, app=app)  # Each room has its own Dialplan
         self.tag: str = self.room_plan.tag
 
         self.bridges_plan: list[Dialplan] = self.room_plan.content
-        self.room_id: str = f'{self.tag}-lead_id-{lead.lead_id}'
+        self.room_id: str = f'{self.tag}-druid-{lead.druid}'
 
         self.log = logger.bind(object_id=self.room_id)
         asyncio.create_task(self.add_tag_status(tag=self.tag,

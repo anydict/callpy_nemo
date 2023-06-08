@@ -54,16 +54,16 @@ class Dialer(object):
     async def room_termination_handler(self):
         while self.config.alive:
             await asyncio.sleep(10)
-            lead_ids_for_remove = []
-            for lead_id, room in self.rooms.items():
+            druids_for_remove = []
+            for druid, room in self.rooms.items():
                 if room.check_tag_status('room', 'stop'):
                     # TODO add save db tags statuses
                     await room.bridge_termination_handler()
-                    lead_ids_for_remove.append(lead_id)
+                    druids_for_remove.append(druid)
 
-            for lead_id in lead_ids_for_remove:
-                self.rooms.pop(lead_id)
-                self.log.info(f'remove room with lead_id={lead_id} from memory')
+            for druid in druids_for_remove:
+                self.rooms.pop(druid)
+                self.log.info(f'remove room with druid={druid} from memory')
 
     async def start_dialer(self):
         self.log.info('start_dialer')
@@ -86,12 +86,12 @@ class Dialer(object):
             raw_dialplan = self.get_raw_dialplan(lead.dialplan_name)
             room_config = Config(self.config.join_config)  # Each room has its own Config
 
-            if self.rooms.get(lead.lead_id) is not None:
-                self.log.error(f'Room with lead_id={lead.lead_id} already exists')
+            if self.rooms.get(lead.druid) is not None:
+                self.log.error(f'Room with druid={lead.druid} already exists')
             else:
                 room = Room(ari=self.ari, config=room_config, lead=lead, raw_dialplan=raw_dialplan, app=self.app)
                 asyncio.create_task(room.start_room())
-                self.rooms[lead.lead_id] = room
+                self.rooms[lead.druid] = room
 
         while len(list(self.rooms)) > 0:
             await asyncio.sleep(1)
@@ -114,8 +114,8 @@ class Dialer(object):
             event = self.queue_trigger_events.pop(0)  # get and remove first event
             self.log.debug(event)
 
-            if event.lead_id in self.rooms:
-                room: Room = self.rooms[event.lead_id]
+            if event.druid in self.rooms:
+                room: Room = self.rooms[event.druid]
                 await room.trigger_event_handler(event)
 
     def get_raw_dialplan(self, name: str) -> dict:

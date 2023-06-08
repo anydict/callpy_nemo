@@ -46,6 +46,12 @@
       "trigger_status": "PlaybackFinished",
       "action": "terminate",
       "active": true
+    },
+    {
+      "trigger_tag": "ivr_clip",
+      "trigger_status": "fully_playback",
+      "action": "terminate",
+      "active": true
     }
   ],
   "content": [
@@ -111,6 +117,13 @@
                   "trigger_tag": "clip_button_8",
                   "trigger_status": "init",
                   "action": "terminate",
+                  "active": true
+                },
+                {
+                  "trigger_tag": "ivr_clip",
+                  "trigger_status": "PlaybackFinished",
+                  "action": "func",
+                  "func": "check_fully_playback",
                   "active": true
                 }
               ]
@@ -273,6 +286,20 @@
               "trigger_tag": "snoop_client",
               "trigger_status": "StasisStart",
               "action": "start",
+              "active": true
+            },
+            {
+              "trigger_tag": "emedia_client",
+              "trigger_status": "StasisStart",
+              "action": "func",
+              "func": "report_start_em",
+              "active": true
+            },
+            {
+              "trigger_tag": "emedia_client",
+              "trigger_status": "StasisEnd",
+              "action": "func",
+              "func": "report_stop_em",
               "active": true
             }
           ]
