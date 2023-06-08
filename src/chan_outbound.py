@@ -13,7 +13,7 @@ class ChanOutbound(Chan):
         if dial_option_name not in self.room.lead.dial_options:
             error = f'No found dial_option_name={dial_option_name} in lead.dial_options'
             self.log.error(error)
-            await self.add_status_chan('api_error', value=error)
+            await self.add_status_chan('dialplan_error', value=error)
             await self.add_status_chan('stop')
             return
 
@@ -23,6 +23,7 @@ class ChanOutbound(Chan):
         create_chan_response = await self.ari.create_chan(chan_id=self.chan_id,
                                                           endpoint=endpoint,
                                                           callerid=dial_option.callerid)
+        await self.add_status_chan('api_create_chan', value=create_chan_response.get('http_code'))
 
         if create_chan_response.get('http_code') in (http.client.OK, http.client.NO_CONTENT):
             await self.ari.subscription(event_source=f'channel:{self.chan_id}')
@@ -31,8 +32,8 @@ class ChanOutbound(Chan):
             self.log.info(chan2bridge_response)
 
             dial_chan_response = await self.ari.dial_chan(chan_id=self.chan_id)
-            self.log.info(dial_chan_response)
+            await self.add_status_chan('api_dial_chan', value=dial_chan_response.get('http_code'))
 
         else:
-            await self.add_status_chan('api_error', value=create_chan_response.get('message'))
+            await self.add_status_chan('error_create_chan', value=create_chan_response.get('message'))
             await self.add_status_chan('stop')

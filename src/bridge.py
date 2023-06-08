@@ -33,7 +33,6 @@ class Bridge(object):
         self.log.debug('object has died')
 
     async def add_status_bridge(self, new_status, value: str = ''):
-        new_status = new_status.upper()  # precaution
         await self.room.add_tag_status(self.tag, new_status=new_status, value=value)
 
     async def chan_termination_handler(self):
@@ -97,9 +96,10 @@ class Bridge(object):
 
     async def start_bridge(self):
         self.log.info('start_bridge')
-        await self.ari.create_bridge(bridge_id=self.bridge_id)
-        await self.add_status_bridge('API_start')
+        create_bridge_response = await self.ari.create_bridge(bridge_id=self.bridge_id)
+        await self.add_status_bridge('api_create_bridge', value=create_bridge_response.get('http_code'))
 
     async def destroy_bridge(self):
         self.log.info('destroy_bridge')
-        await self.ari.destroy_bridge(bridge_id=self.bridge_id)
+        destroy_bridge_response = await self.ari.destroy_bridge(bridge_id=self.bridge_id)
+        await self.add_status_bridge('api_destroy_bridge', value=destroy_bridge_response.get('http_code'))

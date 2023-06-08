@@ -43,7 +43,7 @@
     },
     {
       "trigger_tag": "clip_button_8",
-      "trigger_status": "finish",
+      "trigger_status": "PlaybackFinished",
       "action": "terminate",
       "active": true
     }
@@ -103,6 +103,12 @@
                 },
                 {
                   "trigger_tag": "clip_button_1",
+                  "trigger_status": "init",
+                  "action": "terminate",
+                  "active": true
+                },
+                {
+                  "trigger_tag": "clip_button_8",
                   "trigger_status": "init",
                   "action": "terminate",
                   "active": true
@@ -248,7 +254,7 @@
           },
           "triggers": [
             {
-              "trigger_tag": "bridge_snoop_specialist",
+              "trigger_tag": "bridge_snoop_client",
               "trigger_status": "BridgeCreated",
               "action": "start",
               "active": true

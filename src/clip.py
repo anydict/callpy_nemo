@@ -38,12 +38,11 @@ class Clip(object):
                                                                     clip_id=self.clip_id,
                                                                     name_audio=f"sound:{audio_name}")
 
-            self.log.info(start_playback_response)
-            await self.add_status_clip('api_send')
+            await self.add_status_clip('api_start_playback', value=start_playback_response.get('http_code'))
         else:
             await self.add_status_clip('error_in_audio_name')
 
     async def stop_clip(self):
         self.log.info('stop_clip')
         stop_playback_response = await self.ari.stop_playback(clip_id=self.clip_id)
-        self.log.info(stop_playback_response)
+        await self.add_status_clip('api_stop_playback', value=stop_playback_response.get('http_code'))

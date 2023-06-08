@@ -12,18 +12,22 @@ class ChanEmedia(Chan):
         self.external_host = self.params.get('external_host')
 
         if self.external_host is None or len(self.external_host) == 0:
-            self.log.error(f'Invalid external_host={self.external_host}')
+            error = f'Invalid external_host={self.external_host}'
+            self.log.error(error)
+            await self.add_status_chan('dialplan_error', value=error)
+            await self.add_status_chan('stop')
         else:
 
             create_chan_response = await self.ari.create_emedia_chan(chan_id=self.chan_id,
                                                                      external_host=self.external_host)
+            await self.add_status_chan('api_create_chan', value=create_chan_response.get('http_code'))
 
             if create_chan_response.get('http_code') in (http.client.OK, http.client.NO_CONTENT):
                 await self.ari.subscription(event_source=f'channel:{self.chan_id}')
                 chan2bridge_response = await self.ari.add_channel_to_bridge(bridge_id=self.bridge_id,
                                                                             chan_id=self.chan_id)
-                self.log.info(chan2bridge_response)
+                await self.add_status_chan('api_chan2bridge', value=chan2bridge_response.get('http_code'))
 
             else:
-                await self.add_status_chan('api_error', value=create_chan_response.get('message'))
+                await self.add_status_chan('error_create_chan', value=create_chan_response.get('message'))
                 await self.add_status_chan('stop')
