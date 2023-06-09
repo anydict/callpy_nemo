@@ -19,7 +19,7 @@ class Clip(object):
         self.clip_plan: Dialplan = clip_plan
         self.tag = clip_plan.tag
         self.params: dict = clip_plan.params
-        self.clip_id = f'{self.tag}-id-{self.druid}'
+        self.clip_id = f'{self.tag}-druid-{self.druid}'
 
         self.log = logger.bind(object_id=self.clip_id)
         asyncio.create_task(self.add_status_clip(clip_plan.status, value=self.clip_id))
@@ -31,14 +31,16 @@ class Clip(object):
         await self.room.add_tag_status(self.tag, new_status, value=value)
 
     async def check_fully_playback(self):
-        if 'PlaybackFinished' in self.room.tags_statuses.get(self.tag, []):
-            if 'api_stop_playback' not in self.room.tags_statuses.get(self.tag, []):
-                await self.add_status_clip('fully_playback', value='True')
-                return True
-            else:
-                return False
-        else:
+        tag_statuses = self.room.tags_statuses.get(self.tag, [])
+        if 'PlaybackFinished' not in tag_statuses:
             return False
+        elif tag_statuses.get('PlaybackFinished').get('value') == 'failed':
+            return False
+        elif 'api_stop_playback' in self.room.tags_statuses.get(self.tag, []):
+            return False
+        else:
+            await self.add_status_clip('fully_playback', value='True')
+            return True
 
     async def check_trigger_clip_funcs(self):
         for trigger in [trg for trg in self.clip_plan.triggers if trg.action == 'func'

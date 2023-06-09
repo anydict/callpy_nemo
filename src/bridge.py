@@ -25,7 +25,7 @@ class Bridge(object):
         self.bridge_plan: Dialplan = bridge_plan
         self.chan_plan: list[Dialplan] = bridge_plan.content
         self.tag = bridge_plan.tag
-        self.bridge_id = f'{self.tag}-id-{self.druid}'
+        self.bridge_id = f'{self.tag}-druid-{self.druid}'
         self.log = logger.bind(object_id=self.bridge_id)
         asyncio.create_task(self.add_status_bridge(bridge_plan.status, value=self.bridge_id))
 

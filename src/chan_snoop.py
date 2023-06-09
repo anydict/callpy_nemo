@@ -21,7 +21,7 @@ class ChanSnoop(Chan):
             await self.add_status_chan('dialplan_error', value=error)
             await self.add_status_chan('stop')
         else:
-            self.target_chan_id = f'{self.target_chan_tag}-id-{self.druid}'
+            self.target_chan_id = f'{self.target_chan_tag}-druid-{self.druid}'
 
             create_chan_response = await self.ari.create_snoop_chan(target_chan_id=self.target_chan_id,
                                                                     snoop_id=self.chan_id)

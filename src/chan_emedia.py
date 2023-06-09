@@ -15,18 +15,35 @@ class ChanEmedia(Chan):
     asterisk_unicast_host: str = ''
     asterisk_unicast_port: int = 0
 
-    async def fetch_json(self, session, url, params=None):
+    async def make_get_request(self, url, params=None):
         try:
-            async with session.get(url, params=params) as response:
-                self.log.info(f'fetch_json url={url} params={params}')
-                status = response.status
-                body = await response.text()
-                try:
-                    data = json.loads(body)
-                except json.JSONDecodeError:
-                    self.log.error(f'JSONDecodeError with body={body}')
-                    data = None
-                return status, data
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params=params) as response:
+                    self.log.info(f'fetch_json url={url} params={params}')
+                    status = response.status
+                    body = await response.text()
+                    try:
+                        data = json.loads(body)
+                    except json.JSONDecodeError:
+                        self.log.error(f'JSONDecodeError with body={body}')
+                        data = None
+                    return status, data
+        except ClientConnectorError:
+            return 503, {"msg": "ClientConnectorError"}
+
+    async def make_post_request(self, url, data=None):
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, data=data) as response:
+                    self.log.info(f'fetch_json url={url} params={data}')
+                    status = response.status
+                    body = await response.text()
+                    try:
+                        data_response = json.loads(body)
+                    except json.JSONDecodeError:
+                        self.log.error(f'JSONDecodeError with body={body}')
+                        data_response = None
+                    return status, data_response
         except ClientConnectorError:
             return 503, {"msg": "ClientConnectorError"}
 
@@ -43,7 +60,7 @@ class ChanEmedia(Chan):
             self.asterisk_unicast_host = statuses.get('ChannelVarset#UNICASTRTP_LOCAL_ADDRESS').get('value')
             self.asterisk_unicast_port = statuses.get('ChannelVarset#UNICASTRTP_LOCAL_PORT').get('value')
             url = 'https://127.0.0.1:1234/data'
-            params = {
+            data = {
                 'event': 'start_em',
                 'chan_id': self.chan_id,
                 'current_time': datetime.now().isoformat(),
@@ -56,12 +73,11 @@ class ChanEmedia(Chan):
                     'silence_after_answer_detection': 1
                 }
             }
-            async with aiohttp.ClientSession() as session:
-                status, data = await self.fetch_json(session, url, params)
-                if status == 200:
-                    self.log.info(f'data={data}')
-                else:
-                    self.log.info(f'status={status} and data={data}')
+            status, data_response = await self.make_post_request(url, data)
+            if status == 200:
+                self.log.info(f'data_response={data_response}')
+            else:
+                self.log.info(f'status={data_response} and data={data_response}')
         except Exception as e:
             self.log.error(f'report_start_ms e={e}')
             self.log.exception(e)
@@ -73,20 +89,19 @@ class ChanEmedia(Chan):
 
         try:
             url = 'https://127.0.0.1:1234/data'
-            params = {
+            data = {
                 'event': 'start_em',
                 'chan_id': self.chan_id,
                 'current_time': datetime.now().isoformat(),
                 'params': {}
             }
-            async with aiohttp.ClientSession() as session:
-                status, data = await self.fetch_json(session, url, params)
-                if status == 200:
-                    self.log.info(f'data={data}')
-                else:
-                    self.log.info(f'status={status} and data={data}')
+            status, data_response = await self.make_post_request(url, data)
+            if status == 200:
+                self.log.info(f'data_response={data_response}')
+            else:
+                self.log.info(f'status={data_response} and data={data_response}')
         except Exception as e:
-            self.log.error(f'report_start_ms e={e}')
+            self.log.error(f'report_stop_em e={e}')
             self.log.exception(e)
 
     async def check_trigger_chan_funcs(self):

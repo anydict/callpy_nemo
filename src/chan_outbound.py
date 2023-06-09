@@ -1,3 +1,5 @@
+import re
+
 from src.chan import Chan
 import http.client
 
@@ -6,6 +8,52 @@ from src.dataclasses.dial_option import DialOption
 
 class ChanOutbound(Chan):
     """For work with Outbound channel"""
+
+    chan_name = ''
+
+    async def get_sip_and_q850(self):
+        if len(self.chan_name) > 0:
+
+            get_hangupcause_response = await self.ari.get_chan_var(chan_id=self.chan_id, variable=f'HANGUPCAUSE')
+            if get_hangupcause_response.get('http_code') != http.client.OK:
+                return
+            else:
+                hangupcause = get_hangupcause_response.get('json_response').get('value')
+                await self.add_status_chan('q850', value=hangupcause)
+
+            get_sip_code_response = await self.ari.get_chan_var(chan_id=self.chan_id,
+                                                                variable=f'HANGUPCAUSE({self.chan_name},tech)')
+            if get_sip_code_response.get('http_code') != http.client.OK:
+                return
+            else:
+                hangupcause_tech = get_sip_code_response.get('json_response').get('value')
+                await self.add_status_chan('HANGUPCAUSE_TECH', value=hangupcause_tech)
+
+            get_q850_code_response = await self.ari.get_chan_var(chan_id=self.chan_id,
+                                                                 variable=f'HANGUPCAUSE({self.chan_name},ast)')
+            if get_q850_code_response.get('http_code') == http.client.OK:
+                hangupcause_ast = get_q850_code_response.get('json_response').get('value')
+                await self.add_status_chan('HANGUPCAUSE_AST', value=hangupcause_ast)
+
+            sip_code = re.search(r'\d+', str(hangupcause_tech))
+            if sip_code:
+                await self.add_status_chan('sip_code', value=sip_code.group())
+
+        else:
+            self.log.warning('not found chan_name')
+
+    async def check_trigger_chan_funcs(self):
+        for trigger in self.chan_plan.triggers:
+            if trigger.action == 'func' and trigger.active and trigger.func is not None:
+
+                if trigger.trigger_status in self.room.tags_statuses.get(trigger.trigger_tag, []):
+                    trigger.active = False
+                    if trigger.func == 'get_sip_and_q850':
+                        self.log.info('get_sip_and_q850')
+                        await self.get_sip_and_q850()
+                    else:
+                        self.log.info(f'no found func={trigger.func}')
+                        pass
 
     async def start_chan(self):
         self.log.info('start ChanOutbound')
@@ -26,6 +74,8 @@ class ChanOutbound(Chan):
         await self.add_status_chan('api_create_chan', value=create_chan_response.get('http_code'))
 
         if create_chan_response.get('http_code') in (http.client.OK, http.client.NO_CONTENT):
+            self.chan_name = create_chan_response.get('json_response').get('name')
+
             await self.ari.subscription(event_source=f'channel:{self.chan_id}')
             chan2bridge_response = await self.ari.add_channel_to_bridge(bridge_id=self.bridge_id,
                                                                         chan_id=self.chan_id)

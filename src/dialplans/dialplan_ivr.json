@@ -52,6 +52,12 @@
       "trigger_status": "fully_playback",
       "action": "terminate",
       "active": true
+    },
+    {
+      "trigger_tag": "client",
+      "trigger_status": "ChannelHangupRequest",
+      "action": "terminate",
+      "active": true
     }
   ],
   "content": [
@@ -86,6 +92,41 @@
               "trigger_tag": "bridge_main",
               "trigger_status": "BridgeCreated",
               "action": "start",
+              "active": true
+            },
+            {
+              "trigger_tag": "client",
+              "trigger_status": "Dial#BUSY",
+              "action": "func",
+              "func": "get_sip_and_q850",
+              "active": true
+            },
+            {
+              "trigger_tag": "client",
+              "trigger_status": "Dial#ANSWER",
+              "action": "func",
+              "func": "get_sip_and_q850",
+              "active": true
+            },
+            {
+              "trigger_tag": "client",
+              "trigger_status": "Dial#RINGING",
+              "action": "func",
+              "func": "get_sip_and_q850",
+              "active": true
+            },
+            {
+              "trigger_tag": "client",
+              "trigger_status": "ChannelHangupRequest",
+              "action": "func",
+              "func": "get_sip_and_q850",
+              "active": true
+            },
+            {
+              "trigger_tag": "client",
+              "trigger_status": "StasisEnd",
+              "action": "func",
+              "func": "get_sip_and_q850",
               "active": true
             }
           ],

@@ -64,19 +64,19 @@ class TriggerEvent:
                             'ChannelHangupRequest',
                             'StasisStart',
                             'StasisEnd'):
-            if '-id-' in event.get('channel').get('id'):
-                tag = event.get('channel').get('id').split('-id-')[0]
+            if '-druid-' in event.get('channel').get('id'):
+                tag = event.get('channel').get('id').split('-druid-')[0]
 
-        elif event_type == 'Dial' and '-id-' in event.get('peer').get('id'):
-            tag = event.get('peer').get('id').split('-id-')[0]
+        elif event_type == 'Dial' and '-druid-' in event.get('peer').get('id'):
+            tag = event.get('peer').get('id').split('-druid-')[0]
 
         elif event_type in ('BridgeCreated', 'ChannelEnteredBridge', 'ChannelLeftBridge', 'BridgeDestroyed'):
-            if '-id-' in event.get('bridge').get('id'):
-                tag = event.get('bridge').get('id').split('-id-')[0]
+            if '-druid-' in event.get('bridge').get('id'):
+                tag = event.get('bridge').get('id').split('-druid-')[0]
 
         elif event_type in ('PlaybackStarted', 'PlaybackFinished'):
-            if '-id-' in event.get('playback').get('id'):
-                tag = event.get('playback').get('id').split('-id-')[0]
+            if '-druid-' in event.get('playback').get('id'):
+                tag = event.get('playback').get('id').split('-druid-')[0]
 
         return tag
 
@@ -94,19 +94,19 @@ class TriggerEvent:
                             'ChannelHangupRequest',
                             'StasisStart',
                             'StasisEnd'):
-            if '-id-' in event.get('channel').get('id'):
-                druid = event.get('channel').get('id').split('-id-')[1]
+            if '-druid-' in event.get('channel').get('id'):
+                druid = event.get('channel').get('id').split('-druid-')[1]
 
-        elif event_type == 'Dial' and '-id-' in event.get('peer').get('id'):
-            druid = event.get('peer').get('id').split('-id-')[1]
+        elif event_type == 'Dial' and '-druid-' in event.get('peer').get('id'):
+            druid = event.get('peer').get('id').split('-druid-')[1]
 
         elif event_type in ('BridgeCreated', 'ChannelEnteredBridge', 'ChannelLeftBridge', 'BridgeDestroyed'):
-            if '-id-' in event.get('bridge').get('id'):
-                druid = event.get('bridge').get('id').split('-id-')[1]
+            if '-druid-' in event.get('bridge').get('id'):
+                druid = event.get('bridge').get('id').split('-druid-')[1]
 
         elif event_type in ('PlaybackStarted', 'PlaybackFinished'):
-            if '-id-' in event.get('playback').get('id'):
-                druid = event.get('playback').get('id').split('-id-')[1]
+            if '-druid-' in event.get('playback').get('id'):
+                druid = event.get('playback').get('id').split('-druid-')[1]
 
         return druid
 
@@ -153,6 +153,12 @@ class TriggerEvent:
 
         elif event_type in 'ChannelStateChange':
             return event.get('channel').get('name')
+
+        elif event_type == 'ChannelHangupRequest':
+            return f'{event.get("cause")}'
+
+        elif event_type == 'ChannelDestroyed':
+            return f'{event.get("cause_txt")}#{event.get("cause")}'
 
         elif event_type in 'ChannelVarset':
             return event.get("value")
