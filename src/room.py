@@ -92,6 +92,7 @@ class Room(object):
     def check_tag_status(self, tag, status):
         """
         Given a tag and a status, check if the status is associated with tag in the object's tags_statuses dictionary
+
         @param tag - the tag to check
         @param status - the status to check
         @return True if the status is associated with the tag, False otherwise.
