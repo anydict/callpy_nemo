@@ -30,6 +30,11 @@ class Dialer(object):
 
     @staticmethod
     def load_raw_dialplans() -> dict:
+        """
+        Load the dialplans from two JSON files and return them as a dictionary.
+
+        @return A dictionary containing the loaded dialplans.
+        """
         raw_dialplans = {}
         with open('src/dialplans/dialplan_dialog.json', "r") as plan_file:
             raw_dialplans['redir1_end8'] = json.load(plan_file)
@@ -41,17 +46,33 @@ class Dialer(object):
 
     @staticmethod
     def load_leads() -> list[Lead]:
+        """
+        This function loads leads and returns them as a list of Lead objects.
+
+        @return A list of Lead objects.
+        """
         # with open('src/leads.json', "r") as lead_json:
         #     lead = Lead(json.load(lead_json))
 
         return []
 
     async def alive(self):
+        """
+        This is an asynchronous function that runs in the background
+        And logs a message every 60 seconds while the `alive` flag is set to `True`.
+
+        @return None
+        """
         while self.config.alive:
             self.log.info(f"alive")
             await asyncio.sleep(60)
 
     async def room_termination_handler(self):
+        """
+        This is an asynchronous function that runs in the background and checks rooms for terminated
+
+        @return None
+        """
         while self.config.alive:
             await asyncio.sleep(10)
             druids_for_remove = []
@@ -66,6 +87,11 @@ class Dialer(object):
                 self.log.info(f'remove room with druid={druid} from memory')
 
     async def start_dialer(self):
+        """
+        This is an asynchronous function that starts a dialer.
+
+        @return None
+        """
         self.log.info('start_dialer')
         self.ari = ARI(self.config, self.queue_trigger_events, self.app)
         await self.ari.connect()
@@ -105,6 +131,12 @@ class Dialer(object):
         os.kill(current_pid, 9)
 
     async def run_message_pump_for_rooms(self):
+        """
+        This is an asynchronous function that runs a message pump for rooms.
+
+        @param self - the object instance
+        @return None
+        """
         self.log.info('run_message_pump_for_rooms')
         while self.config.alive:
             if len(self.queue_trigger_events) == 0:
@@ -119,4 +151,10 @@ class Dialer(object):
                 await room.trigger_event_handler(event)
 
     def get_raw_dialplan(self, name: str) -> dict:
+        """
+        Given a name, return the raw dialplan associated with that name.
+
+        @param name - the name of the dialplan
+        @return the raw dialplan as a dictionary.
+        """
         return self.raw_dialplans[name]

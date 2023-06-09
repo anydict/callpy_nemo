@@ -18,6 +18,15 @@ class Bridge(object):
     chans: dict[str, Chan] = {}
 
     def __init__(self, ari: ARI, config: Config, room, bridge_plan: Dialplan):
+        """
+        This is a constructor for a class that initializes various instance variables.
+
+        @param ari - an instance of the ARI class
+        @param config - an instance of the Config class
+        @param room - the room object
+        @param bridge_plan - an instance of the Dialplan class
+        @return None
+        """
         self.ari = ari
         self.config = config
         self.room = room
@@ -30,12 +39,30 @@ class Bridge(object):
         asyncio.create_task(self.add_status_bridge(bridge_plan.status, value=self.bridge_id))
 
     def __del__(self):
+        """
+        This is a destructor method for a class.
+        It is called when the object is destroyed and logs a debug message indicating that the object has died.
+
+        @return None
+        """
         self.log.debug('object has died')
 
     async def add_status_bridge(self, new_status, value: str = ''):
+        """
+        This is an asynchronous function that adds a new status to a bridge.
+
+        @param new_status - the new status to add to the bridge
+        @param value - an optional value to associate with the new status
+        @return None
+        """
         await self.room.add_tag_status(self.tag, new_status=new_status, value=value)
 
     async def chan_termination_handler(self):
+        """
+        This is an asynchronous function that handles the termination of channels.
+
+        @return None
+        """
         if self.config.alive:
             chan_for_remove = []
             for chan_tag, chan in self.chans.items():
@@ -48,6 +75,11 @@ class Bridge(object):
             del chan_for_remove
 
     async def check_trigger_chans(self):
+        """
+        This is an asynchronous function that checks the trigger channels.
+
+        @return None
+        """
         try:
             for chan_plan in self.chan_plan:
                 for trigger in [trg for trg in chan_plan.triggers if trg.action == 'start' and trg.active]:
@@ -96,11 +128,22 @@ class Bridge(object):
             await chan.check_trigger_chan_funcs()
 
     async def start_bridge(self):
+        """
+        This is an asynchronous function that starts a bridge.
+
+        @return None
+        """
         self.log.info('start_bridge')
         create_bridge_response = await self.ari.create_bridge(bridge_id=self.bridge_id)
         await self.add_status_bridge('api_create_bridge', value=str(create_bridge_response.get('http_code')))
 
     async def destroy_bridge(self):
+        """
+        This is an asynchronous function that destroys a bridge and logs the event.
+        It then adds the status of the bridge to the status list.
+
+        @return None
+        """
         self.log.info('destroy_bridge')
         destroy_bridge_response = await self.ari.destroy_bridge(bridge_id=self.bridge_id)
         await self.add_status_bridge('api_destroy_bridge', value=str(destroy_bridge_response.get('http_code')))

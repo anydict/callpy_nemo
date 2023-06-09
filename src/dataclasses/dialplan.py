@@ -3,6 +3,12 @@ from dataclasses import dataclass
 
 class Trigger(object):
     def __init__(self, trigger_raw: dict):
+        """
+        Create new trigger object
+
+        @param trigger_raw - a dictionary containing trigger information
+        @return None
+        """
         self.trigger_tag: str = trigger_raw.get('trigger_tag', 'unknown')
         self.trigger_status: str = trigger_raw.get('trigger_status', 'unknown')
         self.action: str = trigger_raw.get('action', 'unknown')
@@ -13,6 +19,13 @@ class Trigger(object):
 @dataclass
 class Dialplan(object):
     def __init__(self, raw_dialplan: dict, app: str):
+        """
+        This is a class constructor that initializes a Dialplan object with the given parameters.
+
+        @param raw_dialplan: dict - A dictionary containing the raw dialplan data.
+        @param app: str - The application to use.
+        @return Dialplan object with the given parameters.
+        """
         self.raw_dialplan = raw_dialplan
         self.app: str = app
 

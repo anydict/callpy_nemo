@@ -12,6 +12,9 @@ class ChanOutbound(Chan):
     chan_name = ''
 
     async def get_sip_and_q850(self):
+        """
+        This is an asynchronous function that retrieves SIP and Q850 codes from a channel. 
+        """
         if len(self.chan_name) > 0:
 
             get_hangupcause_response = await self.ari.get_chan_var(chan_id=self.chan_id, variable=f'HANGUPCAUSE')
@@ -43,6 +46,9 @@ class ChanOutbound(Chan):
             self.log.warning('not found chan_name')
 
     async def check_trigger_chan_funcs(self):
+        """
+        This is an asynchronous function that checks the trigger channel functions.
+        """
         for trigger in self.chan_plan.triggers:
             if trigger.action == 'func' and trigger.active and trigger.func is not None:
 
@@ -56,6 +62,11 @@ class ChanOutbound(Chan):
                         pass
 
     async def start_chan(self):
+        """
+        This is an asynchronous function that starts a channel for outbound calls.
+
+        @return None
+        """
         self.log.info('start ChanOutbound')
         dial_option_name = self.params.get('dial_option_name', None)
         if dial_option_name not in self.room.lead.dial_options:

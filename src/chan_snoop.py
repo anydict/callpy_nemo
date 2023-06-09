@@ -11,6 +11,9 @@ class ChanSnoop(Chan):
     target_chan_id: str = ''
 
     async def start_chan(self):
+        """
+        This is an asynchronous function that starts a ChanSnoop.
+        """
         self.log.info('start ChanSnoop')
         await asyncio.sleep(0.1)
         self.target_chan_tag = self.params.get('target_chan_tag')

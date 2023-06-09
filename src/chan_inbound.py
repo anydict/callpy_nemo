@@ -3,9 +3,17 @@ from src.chan import Chan
 
 
 class ChanInbound(Chan):
-    """For work with Inbound channel"""
+    """
+    This is a class that inherits from Chan and is used to work with Inbound channels.
+
+    """
 
     async def start_chan(self):
+        """
+        This is an asynchronous function that starts a channel.
+
+        @return None
+        """
         self.log.info('start ChanInbound')
         if self.tag == 'specialist':
             create_chan_response = await self.ari.create_chan(chan_id=self.chan_id,

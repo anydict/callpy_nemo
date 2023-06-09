@@ -7,11 +7,17 @@ class Config(object):
                'alive': True,
                'shutdown': False,
                'asterisk_host': '127.0.0.1',
-               'asterisk_port': '8088',
+               'asterisk_port': 8088,
                'asterisk_login': 'asterisk',
                'asterisk_password': 'asterisk'}
 
     def __init__(self, join_config: dict):
+        """
+        Create new config
+
+        @param join_config: A dictionary containing the configuration values.
+        @return None.
+        """
         self.join_config: dict = join_config
 
         self.new_config = self.default

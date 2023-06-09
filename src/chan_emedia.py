@@ -16,6 +16,14 @@ class ChanEmedia(Chan):
     asterisk_unicast_port: int = 0
 
     async def make_get_request(self, url, params=None):
+        """
+        This is an asynchronous function that makes a GET request to a specified URL with optional parameters.
+
+        @param self - the instance of the class
+        @param url - the URL to make the GET request to
+        @param params - optional parameters to include in the GET request
+        @return a tuple containing the status code and data from the response
+        """
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, params=params) as response:
@@ -48,6 +56,11 @@ class ChanEmedia(Chan):
             return 503, {"msg": "ClientConnectorError"}
 
     async def report_start_em(self):
+        """
+        This is an asynchronous function that reports the start of an event manager.
+
+        @return None
+        """
         statuses = self.room.tags_statuses.get(self.tag)
         if statuses is None \
                 or statuses.get('ChannelVarset#UNICASTRTP_LOCAL_ADDRESS') is None \
@@ -83,6 +96,11 @@ class ChanEmedia(Chan):
             self.log.exception(e)
 
     async def report_stop_em(self):
+        """
+        This is an asynchronous function that reports the stop of an event manager.
+
+        @return None
+        """
         statuses = self.room.tags_statuses.get(self.tag)
         if statuses is None:
             return
@@ -105,6 +123,10 @@ class ChanEmedia(Chan):
             self.log.exception(e)
 
     async def check_trigger_chan_funcs(self):
+        """
+        This is an asynchronous function that checks the trigger channel functions.
+        @return None
+        """
         for trigger in self.chan_plan.triggers:
             if trigger.action == 'func' and trigger.active and trigger.func is not None:
 
@@ -121,6 +143,11 @@ class ChanEmedia(Chan):
                         pass
 
     async def start_chan(self):
+        """
+        This is an asynchronous function that starts ChanEmedia.
+
+        @return None
+        """
         self.log.info('start ChanEmedia')
         self.external_host = self.params.get('external_host')
 

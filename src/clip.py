@@ -11,6 +11,16 @@ class Clip(object):
     """For work Playback on channel"""
 
     def __init__(self, ari: ARI, config: Config, room, chan_id: str, clip_plan: Dialplan):
+        """
+        This is a constructor for a class that initializes various instance variables.
+
+        @param ari - an instance of the ARI class
+        @param config - an instance of the Config class
+        @param room - the room object
+        @param chan_id - the channel ID
+        @param clip_plan - an instance of the Dialplan class
+        @return None
+        """
         self.ari = ari
         self.config = config
         self.room = room
@@ -25,12 +35,33 @@ class Clip(object):
         asyncio.create_task(self.add_status_clip(clip_plan.status, value=self.clip_id))
 
     def __del__(self):
+        """
+        This is a destructor method for a class. It is called when the object is destroyed.
+        It logs a debug message indicating that the object has died.
+
+        @return None
+        """
         self.log.debug('object has died')
 
     async def add_status_clip(self, new_status, value: str = ''):
+        """
+        This is an asynchronous function that adds a new status clip to the room.
+
+        @param self - the object instance
+        @param new_status - the new status clip to be added
+        @param value - the value of the new status clip
+        @return None
+        """
         await self.room.add_tag_status(self.tag, new_status, value=value)
 
     async def check_fully_playback(self):
+        """
+        This is an asynchronous function that checks if the playback of a video has finished.
+        It checks the status of the tag in the room and returns True if the playback has finished successfully.
+
+        @param self - the instance of the class
+        @return True if the playback has finished successfully, False otherwise.
+        """
         tag_statuses = self.room.tags_statuses.get(self.tag, [])
         if 'PlaybackFinished' not in tag_statuses:
             return False
@@ -43,9 +74,14 @@ class Clip(object):
             return True
 
     async def check_trigger_clip_funcs(self):
-        for trigger in [trg for trg in self.clip_plan.triggers if trg.action == 'func'
-                                                                  and trg.active
-                                                                  and trg.func is not None]:
+        """
+        This is an asynchronous function that checks the trigger clip functions.
+
+        """
+        for trigger in self.clip_plan.triggers:
+            if trigger.action == 'func' and trigger.active and trigger.func is not None:
+                continue
+
             if trigger.trigger_status in self.room.tags_statuses.get(trigger.trigger_tag, []):
                 trigger.active = False
                 if trigger.func == 'check_fully_playback':
@@ -55,6 +91,13 @@ class Clip(object):
                     pass
 
     async def start_clip(self):
+        """
+        This is an asynchronous function that starts a clip.
+        If an audio name is provided, it starts playback of the audio.
+        Otherwise, it adds an error status to the clip.
+
+        @return None
+        """
         self.log.info('start clip')
         audio_name = self.params.get('audio_name', None)
         if audio_name is not None and len(audio_name) > 0:
@@ -67,6 +110,12 @@ class Clip(object):
             await self.add_status_clip('error_in_audio_name')
 
     async def stop_clip(self):
+        """
+        This is an asynchronous function that stops the playback of a clip.
+        It logs the action, stops the playback, and adds the status of the clip to the database.
+
+        @return None
+        """
         self.log.info('stop_clip')
         stop_playback_response = await self.ari.stop_playback(clip_id=self.clip_id)
         await self.add_status_clip('api_stop_playback', value=str(stop_playback_response.get('http_code')))

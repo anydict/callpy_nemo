@@ -15,6 +15,16 @@ class Room(object):
     """He runs bridges and stores all status inside the room and check room/bridges triggers"""
 
     def __init__(self, ari: ARI, config: Config, lead: Lead, raw_dialplan: dict, app: str):
+        """
+        This class is used to manage a conference room.
+
+        @param ari - An ARI object
+        @param config - A Config object
+        @param lead - A Lead object
+        @param raw_dialplan - A dictionary representing the dialplan
+        @param app - A string representing the app
+        @return None
+        """
         self.bridges: dict[str, Bridge] = {}
         self.tags_statuses: dict[str, dict] = {}
 
@@ -80,6 +90,12 @@ class Room(object):
         await asyncio.sleep(0)
 
     def check_tag_status(self, tag, status):
+        """
+        Given a tag and a status, check if the status is associated with tag in the object's tags_statuses dictionary
+        @param tag - the tag to check
+        @param status - the status to check
+        @return True if the status is associated with the tag, False otherwise.
+        """
         if tag not in self.tags_statuses:
             return False
         elif status in self.tags_statuses[tag]:
@@ -88,6 +104,11 @@ class Room(object):
             return False
 
     async def bridge_termination_handler(self):
+        """
+        This is an asynchronous function that handles the termination of a bridge.
+
+        @return None
+        """
         if self.config.alive:
             bridge_tags_for_remove = []
             for bridge_tag, bridge in self.bridges.items():
@@ -100,16 +121,30 @@ class Room(object):
             self.log.info(self.tags_statuses)
 
     async def start_room(self):
+        """
+        This is an asynchronous function that starts a room.
+        It logs the message "start_room" and then adds a tag status with the given tag and new status 'ready'
+
+        @return None
+        """
         self.log.info('start_room')
         await self.add_tag_status(tag=self.tag, new_status='ready')
 
     async def check_trigger_room(self):
+        """
+        This is an asynchronous function that checks if a trigger room is active.
+
+        @return None
+        """
         for trigger in [trg for trg in self.room_plan.triggers if trg.action == 'terminate' and trg.active]:
             if trigger.trigger_status in self.tags_statuses.get(trigger.trigger_tag, []):
                 trigger.active = False
                 await self.add_tag_status(tag=self.tag, new_status='stop')
 
     async def check_trigger_bridges(self):
+        """
+        Asynchronous method that checks the status of bridges and triggers.
+        """
 
         for bridge_plan in self.bridges_plan:
             if bridge_plan.tag in [bridge.tag for bridge in self.bridges.values()]:
@@ -135,6 +170,13 @@ class Room(object):
             await bridge.check_trigger_chans()
 
     async def trigger_event_handler(self, trigger_event: TriggerEvent):
+        """
+        This is an asynchronous function that handles a trigger event.
+        It takes in a TriggerEvent object and adds the tag status to the database.
+
+        @param trigger_event - a TriggerEvent object containing information about the event
+        @return None (asynchronous)
+        """
         await self.add_tag_status(trigger_event.tag,
                                   trigger_event.status,
                                   trigger_event.external_time,
