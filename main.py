@@ -27,15 +27,15 @@ logger.add(sink=sys.stdout,
            format=custom_log_format,
            colorize=True)
 # different files for different message types
-logger.add(sink="src/logs/debug.log",
+logger.add(sink="logs/debug.log",
            filter=lambda record: record["level"].name == "DEBUG",
            rotation="1 day",
            format=custom_log_format)
-logger.add(sink="src/logs/error.log",
+logger.add(sink="logs/error.log",
            filter=lambda record: record["level"].name == "ERROR",
            rotation="1 day",
            format=custom_log_format)
-logger.add(sink="src/logs/callpy_nemo.log",
+logger.add(sink="logs/callpy_nemo.log",
            filter=lambda record: record["level"].name not in ("DEBUG", "ERROR"),
            rotation="1 day",
            format=custom_log_format)
