@@ -63,7 +63,7 @@ async def app_startup():
 
 
 app.add_middleware(CORSMiddleware,
-                   allow_origins=["http://localhost:8005"],
+                   allow_origins=[f"http://{config.app_api_host}:{config.app_api_port}"],
                    allow_credentials=True,
                    allow_methods=["*"],
                    allow_headers=["*"])
@@ -79,9 +79,10 @@ if __name__ == "__main__":
         logger.info(f"Machine: {uname.machine}")
         logger.info(f"Parent pid: {os.getppid()}")
         logger.info(f"Current pid: {os.getpid()}")
+        logger.info(f"API bind address: {config.app_api_host}:{config.app_api_port}")
 
         # Start FastAPI and our application through on_event startup
-        uvicorn.run("main:app", host='127.0.0.1', port=8005, log_level="info", reload=True)
+        uvicorn.run("main:app", host=config.app_api_host, port=config.app_api_port, log_level="info", reload=True)
 
         logger.info(f"Shutting down")
     except KeyboardInterrupt:
