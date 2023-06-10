@@ -73,7 +73,7 @@ class Chan(object):
         """
         for clip_plan in self.clips_plan:
 
-            if clip_plan.tag in [clip.tag for clip in self.clips.values()]:
+            if clip_plan.tag in self.clips.items():
                 # check terminate trigger if clip already exist
                 for trigger in [trg for trg in clip_plan.triggers if trg.action == 'terminate' and trg.active]:
                     # check match the status of the object being monitored by the trigger

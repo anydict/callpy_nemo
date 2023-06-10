@@ -79,12 +79,14 @@ class Clip(object):
 
         """
         for trigger in self.clip_plan.triggers:
-            if trigger.action == 'func' and trigger.active and trigger.func is not None:
+            if trigger.action == 'func' and (trigger.func is None or trigger.action is False):
                 continue
 
             if trigger.trigger_status in self.room.tags_statuses.get(trigger.trigger_tag, []):
-                trigger.active = False
+                if trigger.func is None:
+                    pass
                 if trigger.func == 'check_fully_playback':
+                    trigger.active = False
                     await self.check_fully_playback()
                 else:
                     self.log.info(f'no found func={trigger.func}')

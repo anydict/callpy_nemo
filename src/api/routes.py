@@ -119,7 +119,7 @@ class Routers(object):
         self.config.shutdown = True
 
         json_str = json.dumps({
-            "app": "callpy",
+            "app": self.config.app,
             "server": self.config.asterisk_host,
             "shutdown": self.config.shutdown,
             "alive": self.config.alive,

@@ -35,7 +35,7 @@ logger.add(sink="logs/error.log",
            filter=lambda record: record["level"].name == "ERROR",
            rotation="1 day",
            format=custom_log_format)
-logger.add(sink="logs/callpy_nemo.log",
+logger.add(sink="logs/callpy.log",
            filter=lambda record: record["level"].name not in ("DEBUG", "ERROR"),
            rotation="1 day",
            format=custom_log_format)

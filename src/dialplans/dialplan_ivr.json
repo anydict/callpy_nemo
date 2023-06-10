@@ -251,7 +251,7 @@
           "tag": "emedia_specialist",
           "status": "init",
           "params": {
-            "external_host": "127.0.0.1:9999"
+            "external_host": "127.0.0.1:1234"
           },
           "triggers": [
             {
@@ -320,7 +320,7 @@
           "tag": "emedia_client",
           "status": "init",
           "params": {
-            "external_host": "127.0.0.1:9999"
+            "external_host": "127.0.0.1:1234"
           },
           "triggers": [
             {
