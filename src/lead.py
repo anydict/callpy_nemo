@@ -37,7 +37,7 @@ class Lead(object):
         @return the action ID or the concatenation of the system prefix and the druid
         """
         if str(actionid) == '' or actionid is None:
-            actionid = self.system_prefix + self.druid
+            actionid = self.system_prefix + '-' + self.druid
 
         return actionid
 

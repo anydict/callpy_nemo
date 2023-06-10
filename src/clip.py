@@ -84,13 +84,13 @@ class Clip(object):
 
             if trigger.trigger_status in self.room.tags_statuses.get(trigger.trigger_tag, []):
                 if trigger.func is None:
-                    pass
-                if trigger.func == 'check_fully_playback':
+                    continue
+                elif trigger.func == 'check_fully_playback':
                     trigger.active = False
                     await self.check_fully_playback()
                 else:
                     self.log.info(f'no found func={trigger.func}')
-                    pass
+                    continue
 
     async def start_clip(self):
         """
