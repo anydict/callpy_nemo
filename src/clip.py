@@ -79,7 +79,7 @@ class Clip(object):
 
         """
         for trigger in self.clip_plan.triggers:
-            if trigger.action == 'func' and (trigger.func is None or trigger.action is False):
+            if trigger.action != 'func' or trigger.func is None or trigger.active is False:
                 continue
 
             if trigger.trigger_status in self.room.tags_statuses.get(trigger.trigger_tag, []):
