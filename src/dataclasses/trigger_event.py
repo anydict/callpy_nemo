@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Union
+
+from src.good_func.good_func import fix_iso_timestamp
 
 UNKNOWN = 'UNKNOWN'
 
@@ -22,8 +23,8 @@ class TriggerEvent:
         self.app: str = event.get('application') or UNKNOWN
         self.asterisk_id: str = event.get('asterisk_id') or UNKNOWN
         self.event_type: str = event.get('type') or UNKNOWN
-        self.trigger_time: str = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
-        self.external_time: str = self.fix_iso_timestamp(event.get('timestamp'))
+        self.trigger_time: str = datetime.now().isoformat()
+        self.external_time: str = fix_iso_timestamp(event.get('timestamp'))
 
         self.delay: float = self.calc_delay()
 
@@ -36,19 +37,6 @@ class TriggerEvent:
         a = datetime.strptime(self.external_time, "%Y-%m-%dT%H:%M:%S.%f")
         b = datetime.strptime(self.trigger_time, "%Y-%m-%dT%H:%M:%S.%f")
         return (b - a).total_seconds()
-
-    @staticmethod
-    def fix_iso_timestamp(var_time: Union[str, None]):
-        """ Converting the date to the correct string format """
-
-        if var_time == '':
-            return var_time
-        elif len(str(var_time)) > 23:
-            # 2023-05-16T00:33:52.951+0300 to 2023-05-16T00:33:52.951000
-            return f'{var_time[:23]}000'
-        else:
-            # other cases return current date (example: 2023-05-16T00:31:03.264071)
-            return datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
 
     @staticmethod
     def get_tag_from_event(event: dict, event_type: str):

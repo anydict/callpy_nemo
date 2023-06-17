@@ -1,6 +1,6 @@
-import datetime
 import json
 import re
+from datetime import datetime
 from statistics import fmean
 
 from fastapi import APIRouter
@@ -55,28 +55,32 @@ class Routers(object):
         # all the routes above are through this GET route
         self.router.add_api_route("/extapi", self.extapi, methods=["GET"])
 
+        self.router.add_api_route("/{not_found}", self.not_found, methods=["POST"])
+
     def get_root(self):
         json_str = json.dumps({"app": "callpy", "server": self.config.asterisk_host}, indent=4, default=str)
 
         return Response(content=json_str, media_type='application/json')
 
     def get_diag(self):
-        json_str = json.dumps({"res": "OK", "alive": self.config.alive}, indent=4, default=str)
+        json_str = json.dumps({
+            "app": self.config.app,
+            "shutdown": self.config.shutdown,
+            "alive": self.config.alive,
+            "current_time": datetime.now().isoformat()
+        }, indent=4, default=str)
 
         return Response(content=json_str, media_type='application/json')
 
     def get_stats(self):
         stat_store = [0]
         for room in self.dialer.rooms.values():
-            for tag in room.tags_statuses:
-                for status in room.tags_statuses[tag].values():
-                    if status.get('external_time') != '':
-                        d1 = datetime.datetime.strptime(status.get('external_time'),
-                                                        '%Y-%m-%dT%H:%M:%S.%f')
-                        d2 = datetime.datetime.strptime(status.get('trigger_time'),
-                                                        '%Y-%m-%dT%H:%M:%S.%f')
-                        diff = (d2 - d1).total_seconds()
-                        stat_store.append(diff)
+            for status in room.tags_statuses.values():
+                if status.get('external_time') != '':
+                    d1 = datetime.strptime(status.get('external_time'), '%Y-%m-%dT%H:%M:%S.%f')
+                    d2 = datetime.strptime(status.get('trigger_time'), '%Y-%m-%dT%H:%M:%S.%f')
+                    diff = (d2 - d1).total_seconds()
+                    stat_store.append(diff)
         json_str = json.dumps({
             "max": max(stat_store),
             "avg": fmean(stat_store),
@@ -124,7 +128,7 @@ class Routers(object):
             "shutdown": self.config.shutdown,
             "alive": self.config.alive,
             "msg": "app restart started",
-            "current_time": datetime.datetime.now().isoformat()
+            "current_time": datetime.now().isoformat()
         }, indent=4, default=str)
 
         return Response(content=json_str, media_type='application/json')
@@ -239,3 +243,10 @@ class Routers(object):
             return self.hangup(params)
 
         return Response(content=json_str, media_type='application/json')
+
+    @staticmethod
+    async def not_found():
+        json_str = json.dumps({
+            "msg": "Not found"
+        }, indent=4, default=str)
+        return Response(content=json_str, status_code=404)

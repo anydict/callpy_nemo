@@ -62,12 +62,12 @@ class Clip(object):
         @param self - the instance of the class
         @return True if the playback has finished successfully, False otherwise.
         """
-        tag_statuses = self.room.tags_statuses.get(self.tag, [])
-        if 'PlaybackFinished' not in tag_statuses:
+        clip_statuses = self.room.tags_statuses.get(self.tag, [])
+        if 'PlaybackFinished' not in clip_statuses:
             return False
-        elif tag_statuses.get('PlaybackFinished').get('value') == 'failed':
+        elif clip_statuses.get('PlaybackFinished').get('value') == 'failed':
             return False
-        elif 'api_stop_playback' in self.room.tags_statuses.get(self.tag, []):
+        elif 'api_stop_playback' in clip_statuses:
             return False
         else:
             await self.add_status_clip('fully_playback', value='True')

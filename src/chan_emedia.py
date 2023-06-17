@@ -12,8 +12,9 @@ class ChanEmedia(Chan):
     """For work with ExternalMedia channel"""
 
     external_host: str = ''
-    asterisk_unicast_host: str = ''
-    asterisk_unicast_port: int = 0
+    em_host: str = ''
+    em_port: int = 0
+    em_ssrc: int = 0
 
     async def make_get_request(self, url, params=None):
         """
@@ -42,7 +43,8 @@ class ChanEmedia(Chan):
     async def make_post_request(self, url, data=None):
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.post(url, data=data) as response:
+                headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+                async with session.post(url, data=json.dumps(data), headers=headers) as response:
                     self.log.info(f'fetch_json url={url} params={data}')
                     status = response.status
                     body = await response.text()
@@ -55,13 +57,14 @@ class ChanEmedia(Chan):
         except ClientConnectorError:
             return 503, {"msg": "ClientConnectorError"}
 
-    async def report_start_em(self):
+    async def send_event_create_em(self, trigger_tag: str):
         """
         This is an asynchronous function that reports the start of an event manager.
 
         @return None
         """
-        statuses = self.room.tags_statuses.get(self.tag)
+        self.log.info('send_event_create_em')
+        statuses = self.room.tags_statuses.get(trigger_tag)
         if statuses is None \
                 or statuses.get('ChannelVarset#UNICASTRTP_LOCAL_ADDRESS') is None \
                 or statuses.get('ChannelVarset#UNICASTRTP_LOCAL_PORT') is None:
@@ -70,54 +73,160 @@ class ChanEmedia(Chan):
             return
 
         try:
-            self.asterisk_unicast_host = statuses.get('ChannelVarset#UNICASTRTP_LOCAL_ADDRESS').get('value')
-            self.asterisk_unicast_port = statuses.get('ChannelVarset#UNICASTRTP_LOCAL_PORT').get('value')
-            url = 'https://127.0.0.1:1234/data'
+            self.em_host = statuses.get('ChannelVarset#UNICASTRTP_LOCAL_ADDRESS').get('value')
+            self.em_port = statuses.get('ChannelVarset#UNICASTRTP_LOCAL_PORT').get('value')
+            event_time = statuses.get('ChannelVarset#UNICASTRTP_LOCAL_ADDRESS').get('external_time')
+
+            url = 'http://127.0.0.1:7005/events'
             data = {
-                'event': 'start_em',
-                'chan_id': self.chan_id,
-                'current_time': datetime.now().isoformat(),
-                'params': {
-                    'asterisk_unicast_host': self.asterisk_unicast_host,
-                    'asterisk_unicast_port': self.asterisk_unicast_port,
-                    'speech_recognition': 1,
-                    'autoresponse_detection': 1,
-                    'voice_start_detection': 1,
-                    'silence_after_answer_detection': 1
+                "event_name": "CREATE",
+                "event_time": event_time,
+                "druid": self.room.druid,
+                "chan_id": self.chan_id,
+                "send_time": datetime.now().isoformat(),
+                "token": "NE1K0Vz4pPa9PRJ+JtAibBZba7MlsWcPY+Qz8iRDTekMVz4+46Qn12q21234",
+                "info": {
+                    "em_host": self.em_host,
+                    "em_port": int(self.em_port),
+                    "em_wait_seconds": 5,
+                    "em_codec": "slin16",
+                    "em_sample_rate": 16000,
+                    "em_bit_rate": 8,
+                    "save_record": 1,
+                    "save_format": "wav",
+                    "save_sample_rate": 16000,
+                    "save_bit_rate": 8,
+                    "save_filename": f"CALLPY-20230615223858844427-druid-{self.room.druid}",
+                    "save_concat_druid": "mixing",
+                    "speech_recognition": 1,
+                    "detection_autoresponse": 1,
+                    "detection_voice_start": 1,
+                    "detection_absolute_silence": 1
                 }
             }
             status, data_response = await self.make_post_request(url, data)
             if status == 200:
                 self.log.info(f'data_response={data_response}')
+                if 'ssrc' in data_response:
+                    self.em_ssrc = data_response['ssrc']
+                else:
+                    self.log.error('Not found ssrc')
             else:
-                self.log.info(f'status={data_response} and data={data_response}')
+                self.log.error(f'status={data_response} and data={data_response}')
         except Exception as e:
             self.log.error(f'report_start_ms e={e}')
             self.log.exception(e)
 
-    async def report_stop_em(self):
+    async def send_event_progress(self, trigger_tag: str):
         """
         This is an asynchronous function that reports the stop of an event manager.
 
         @return None
         """
-        statuses = self.room.tags_statuses.get(self.tag)
+        self.log.info('send_event_progress')
+        statuses = self.room.tags_statuses.get(trigger_tag)
         if statuses is None:
             return
 
+        event_time = statuses.get('Dial#PROGRESS').get('external_time')
+
         try:
-            url = 'https://127.0.0.1:1234/data'
+            url = 'http://127.0.0.1:7005/events'
             data = {
-                'event': 'start_em',
-                'chan_id': self.chan_id,
-                'current_time': datetime.now().isoformat(),
-                'params': {}
+                "event_name": "PROGRESS",
+                "event_time": event_time,
+                "druid": self.room.druid,
+                "chan_id": self.chan_id,
+                "send_time": datetime.now().isoformat(),
+                "token": "NE1K0Vz4pPa9PRJ+JtAibBZba7MlsWcPY+Qz8iRDTekMVz4+46Qn12q21234",
+                "info": {
+                    "em_host": self.em_host,
+                    "em_port": self.em_port,
+                    "em_ssrc": self.em_ssrc
+                }
             }
+
             status, data_response = await self.make_post_request(url, data)
             if status == 200:
                 self.log.info(f'data_response={data_response}')
             else:
-                self.log.info(f'status={data_response} and data={data_response}')
+                self.log.error(f'status={data_response} and data={data_response}')
+        except Exception as e:
+            self.log.error(f'report_stop_em e={e}')
+            self.log.exception(e)
+
+    async def send_event_answer(self, trigger_tag: str):
+        """
+        This is an asynchronous function that reports the stop of an event manager.
+
+        @return None
+        """
+        self.log.info('send_event_answer')
+        statuses = self.room.tags_statuses.get(trigger_tag)
+        if statuses is None:
+            return
+
+        event_time = statuses.get('Dial#ANSWER').get('external_time')
+
+        try:
+            url = 'http://127.0.0.1:7005/events'
+            data = {
+                "event_name": "ANSWER",
+                "event_time": event_time,
+                "druid": self.room.druid,
+                "chan_id": self.chan_id,
+                "send_time": datetime.now().isoformat(),
+                "token": "NE1K0Vz4pPa9PRJ+JtAibBZba7MlsWcPY+Qz8iRDTekMVz4+46Qn12q21234",
+                "info": {
+                    "em_host": self.em_host,
+                    "em_port": self.em_port,
+                    "em_ssrc": self.em_ssrc
+                }
+            }
+
+            status, data_response = await self.make_post_request(url, data)
+            if status == 200:
+                self.log.info(f'data_response={data_response}')
+            else:
+                self.log.error(f'status={data_response} and data={data_response}')
+        except Exception as e:
+            self.log.error(f'report_stop_em e={e}')
+            self.log.exception(e)
+
+    async def send_event_destroy_em(self, trigger_tag: str):
+        """
+        This is an asynchronous function that reports the stop of an event manager.
+
+        @return None
+        """
+        self.log.info('send_event_destroy_em')
+        statuses = self.room.tags_statuses.get(trigger_tag)
+        if statuses is None:
+            return
+
+        event_time = statuses.get('StasisEnd').get('external_time')
+
+        try:
+            url = 'http://127.0.0.1:7005/events'
+            data = {
+                "event_name": "DESTROY",
+                "event_time": event_time,
+                "druid": self.room.druid,
+                "chan_id": self.chan_id,
+                "send_time": datetime.now().isoformat(),
+                "token": "NE1K0Vz4pPa9PRJ+JtAibBZba7MlsWcPY+Qz8iRDTekMVz4+46Qn12q21234",
+                "info": {
+                    "em_host": self.em_host,
+                    "em_port": self.em_port,
+                    "em_ssrc": self.em_ssrc
+                }
+            }
+
+            status, data_response = await self.make_post_request(url, data)
+            if status == 200:
+                self.log.info(f'data_response={data_response}')
+            else:
+                self.log.error(f'status={data_response} and data={data_response}')
         except Exception as e:
             self.log.error(f'report_stop_em e={e}')
             self.log.exception(e)
@@ -130,14 +239,21 @@ class ChanEmedia(Chan):
         for trigger in self.chan_plan.triggers:
             if trigger.action == 'func' and trigger.active and trigger.func is not None:
 
-                if trigger.trigger_status in self.room.tags_statuses.get(trigger.trigger_tag, []):
+                trigger_tag_statuses = self.room.tags_statuses.get(trigger.trigger_tag, [])
+                if trigger.trigger_status in trigger_tag_statuses:
                     trigger.active = False
-                    if trigger.func == 'report_start_em':
-                        self.log.info('report_start_em')
-                        await self.report_start_em()
-                    elif trigger.func == 'report_stop_em':
-                        self.log.info('report_stop_em')
-                        await self.report_stop_em()
+                    if trigger.func == 'send_event_create_em':
+                        self.log.info('send_event_create_em')
+                        await self.send_event_create_em(trigger.trigger_tag)
+                    elif trigger.func == 'send_event_progress':
+                        self.log.info('send_event_progress')
+                        await self.send_event_progress(trigger.trigger_tag)
+                    elif trigger.func == 'send_event_answer':
+                        self.log.info('send_event_answer')
+                        await self.send_event_answer(trigger.trigger_tag)
+                    elif trigger.func == 'send_event_destroy_em':
+                        self.log.info('send_event_destroy_em')
+                        await self.send_event_destroy_em(trigger.trigger_tag)
                     else:
                         self.log.info(f'no found func={trigger.func}')
                         pass

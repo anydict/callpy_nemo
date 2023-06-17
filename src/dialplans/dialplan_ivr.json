@@ -333,14 +333,28 @@
               "trigger_tag": "emedia_client",
               "trigger_status": "StasisStart",
               "action": "func",
-              "func": "report_start_em",
+              "func": "send_event_create_em",
+              "active": true
+            },
+            {
+              "trigger_tag": "client",
+              "trigger_status": "Dial#PROGRESS",
+              "action": "func",
+              "func": "send_event_progress",
+              "active": true
+            },
+            {
+              "trigger_tag": "client",
+              "trigger_status": "Dial#ANSWER",
+              "action": "func",
+              "func": "send_event_answer",
               "active": true
             },
             {
               "trigger_tag": "emedia_client",
               "trigger_status": "StasisEnd",
               "action": "func",
-              "func": "report_stop_em",
+              "func": "send_event_destroy_em",
               "active": true
             }
           ]
