@@ -47,7 +47,7 @@ class Chan(object):
         self.log.debug('object has died')
 
     async def add_status_chan(self, new_status, value: str = ""):
-        await self.room.add_tag_status(self.tag, new_status, value=value)
+        asyncio.create_task(self.room.add_tag_status(self.tag, new_status, value=value))
 
     async def clip_termination_handler(self):
         """

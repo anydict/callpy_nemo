@@ -54,7 +54,7 @@ class ARI(APIHandler):
             try:
                 while self._config.alive:
                     event_json = await ws.recv()
-                    self.log.debug(event_json)
+                    # self.log.debug(event_json)
                     try:
                         trigger_event = TriggerEvent(json.loads(event_json))
                         if trigger_event.event_type in DISABLED_ASTERISK_EVENT_TYPES:
@@ -85,6 +85,6 @@ if __name__ == "__main__":
     queue = []
     dict_config = {"asterisk_host": "127.0.0.1", "asterisk_port": "8088",
                    "asterisk_login": "asterisk", "asterisk_password": "asterisk"}
-    conf = Config(dict_config=dict_config)
+    conf = Config(join_config=dict_config)
     a = ARI(conf, queue, 'test')
     asyncio.run(alive(a))

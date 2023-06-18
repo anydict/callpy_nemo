@@ -92,7 +92,7 @@ class ChanEmedia(Chan):
                     "em_codec": "slin16",
                     "em_sample_rate": 16000,
                     "em_sample_width": 2,
-                    "save_record": 0,
+                    "save_record": 1,
                     "save_format": "wav",
                     "save_sample_rate": 16000,
                     "save_bit_rate": 8,

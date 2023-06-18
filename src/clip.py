@@ -52,7 +52,7 @@ class Clip(object):
         @param value - the value of the new status clip
         @return None
         """
-        await self.room.add_tag_status(self.tag, new_status, value=value)
+        asyncio.create_task(self.room.add_tag_status(self.tag, new_status, value=value))
 
     async def check_fully_playback(self):
         """

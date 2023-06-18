@@ -56,13 +56,13 @@ class Room(object):
                              debug_log: int = 0):
         """Stores tag status and run check triggers
 
-        :param str tag: Object Tag
-        :param str new_status: new status for tag
-        :param str external_time: time from asterisk or external service (if exist)
-        :param str trigger_time: time from create trigger event after receive asterisk event (if exist)
-        :param str value: Additional data
-        :return: None
-
+        @param str tag: Object Tag
+        @param str new_status: new status for tag
+        @param str external_time: time from asterisk or external service (if exist)
+        @param str trigger_time: time from create trigger event after receive asterisk event (if exist)
+        @param str value: Additional data
+        @param int debug_log: for debugging
+        @return: None
         """
         self.log.info(f' tag={tag} new status={new_status} value={value}')
 
@@ -121,7 +121,7 @@ class Room(object):
                 await bridge.chan_termination_handler()
                 self.bridges.pop(bridge.tag)
                 self.log.debug(f'remove bridge with tag={bridge.tag} from memory')
-            self.log.debug(self.tags_statuses)
+            # self.log.debug(self.tags_statuses)
 
     async def start_room(self):
         """
@@ -131,7 +131,7 @@ class Room(object):
         @return None
         """
         self.log.info('start_room')
-        await self.add_tag_status(tag=self.tag, new_status='ready')
+        asyncio.create_task(self.add_tag_status(tag=self.tag, new_status='ready'))
 
     async def check_trigger_room(self, debug_log: int = 0):
         """
@@ -145,7 +145,7 @@ class Room(object):
         for trigger in [trg for trg in self.room_plan.triggers if trg.action == 'terminate' and trg.active]:
             if trigger.trigger_status in self.tags_statuses.get(trigger.trigger_tag, []):
                 trigger.active = False
-                await self.add_tag_status(tag=self.tag, new_status='stop')
+                asyncio.create_task(self.add_tag_status(tag=self.tag, new_status='stop'))
 
     async def check_trigger_bridges(self, debug_log: int = 0):
         """
@@ -187,8 +187,8 @@ class Room(object):
         @param trigger_event - a TriggerEvent object containing information about the event
         @return None (asynchronous)
         """
-        await self.add_tag_status(trigger_event.tag,
-                                  trigger_event.status,
-                                  trigger_event.external_time,
-                                  trigger_event.trigger_time,
-                                  trigger_event.value)
+        asyncio.create_task(self.add_tag_status(trigger_event.tag,
+                                                trigger_event.status,
+                                                trigger_event.external_time,
+                                                trigger_event.trigger_time,
+                                                trigger_event.value))

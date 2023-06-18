@@ -54,7 +54,7 @@ class Bridge(object):
         @param value - an optional value to associate with the new status
         @return None
         """
-        await self.room.add_tag_status(self.tag, new_status=new_status, value=value)
+        asyncio.create_task(self.room.add_tag_status(self.tag, new_status=new_status, value=value))
 
     async def chan_termination_handler(self):
         """
