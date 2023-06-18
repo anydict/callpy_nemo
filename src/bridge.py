@@ -1,9 +1,9 @@
 import asyncio
+from typing import Union
 
 from loguru import logger
 
 from src.ari.ari import ARI
-from src.chan import Chan
 from src.chan_emedia import ChanEmedia
 from src.chan_inbound import ChanInbound
 from src.chan_outbound import ChanOutbound
@@ -14,8 +14,6 @@ from src.dataclasses.dialplan import Dialplan
 
 class Bridge(object):
     """He runs channels and check chans triggers"""
-
-    chans: dict[str, Chan] = {}
 
     def __init__(self, ari: ARI, config: Config, room, bridge_plan: Dialplan):
         """
@@ -30,6 +28,7 @@ class Bridge(object):
         self.ari = ari
         self.config = config
         self.room = room
+        self.chans: dict[str, Union[ChanEmedia, ChanSnoop, ChanInbound, ChanOutbound]] = {}
         self.druid = room.druid
         self.bridge_plan: Dialplan = bridge_plan
         self.chan_plan: list[Dialplan] = bridge_plan.content
@@ -64,22 +63,20 @@ class Bridge(object):
         @return None
         """
         if self.config.alive:
-            chan_for_remove = []
-            for chan_tag, chan in self.chans.items():
-                await chan.clip_termination_handler()
-                chan_for_remove.append(chan_tag)
-
-            for chan_tag in chan_for_remove:
+            for chan_tag in list(self.chans):
+                await self.chans[chan_tag].clip_termination_handler()
                 self.chans.pop(chan_tag)
                 self.log.debug(f'remove chan with tag={chan_tag} from memory')
-            del chan_for_remove
 
-    async def check_trigger_chans(self):
+    async def check_trigger_chans(self, debug_log: int = 0):
         """
         This is an asynchronous function that checks the trigger channels.
 
         @return None
         """
+        if debug_log > 0:
+            self.log.debug(f'debug_log={debug_log}')
+
         try:
             for chan_plan in self.chan_plan:
                 for trigger in [trg for trg in chan_plan.triggers if trg.action == 'start' and trg.active]:
@@ -110,7 +107,7 @@ class Bridge(object):
                                                 bridge_id=self.bridge_id,
                                                 chan_plan=chan_plan)
                         else:
-                            logger.warning(f'Invalid type for chan in (tag={chan_plan.tag}, type={chan_plan.type}')
+                            logger.error(f'Invalid type for chan in (tag={chan_plan.tag}, type={chan_plan.type}')
                             logger.warning(f'Try use type=chan_outbound')
                             chan = ChanOutbound(ari=self.ari,
                                                 config=self.config,
@@ -119,13 +116,16 @@ class Bridge(object):
                                                 chan_plan=chan_plan)
                         self.chans[chan.tag] = chan
                         asyncio.create_task(chan.start_chan())
+
         except Exception as e:
             self.log.exception(e)
             self.log.error(f'e={e}')
 
-        for chan in self.chans.values():
-            await chan.check_trigger_clips()
-            await chan.check_trigger_chan_funcs()
+        for chan in list(self.chans.values()):
+            if chan.druid != self.druid:
+                self.log.error('WTF')
+            await chan.check_trigger_clips(debug_log)
+            await chan.check_trigger_chan_funcs(debug_log)
 
     async def start_bridge(self):
         """

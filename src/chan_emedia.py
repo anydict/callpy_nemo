@@ -57,13 +57,13 @@ class ChanEmedia(Chan):
         except ClientConnectorError:
             return 503, {"msg": "ClientConnectorError"}
 
-    async def send_event_create_em(self, trigger_tag: str):
+    async def send_event_create(self, trigger_tag: str):
         """
         This is an asynchronous function that reports the start of an event manager.
 
         @return None
         """
-        self.log.info('send_event_create_em')
+        self.log.info('send_event_create')
         statuses = self.room.tags_statuses.get(trigger_tag)
         if statuses is None \
                 or statuses.get('ChannelVarset#UNICASTRTP_LOCAL_ADDRESS') is None \
@@ -75,7 +75,7 @@ class ChanEmedia(Chan):
         try:
             self.em_host = statuses.get('ChannelVarset#UNICASTRTP_LOCAL_ADDRESS').get('value')
             self.em_port = statuses.get('ChannelVarset#UNICASTRTP_LOCAL_PORT').get('value')
-            event_time = statuses.get('ChannelVarset#UNICASTRTP_LOCAL_ADDRESS').get('external_time')
+            event_time = statuses.get('ChannelVarset#BRIDGEPEER').get('external_time')
 
             url = 'http://127.0.0.1:7005/events'
             data = {
@@ -91,8 +91,8 @@ class ChanEmedia(Chan):
                     "em_wait_seconds": 5,
                     "em_codec": "slin16",
                     "em_sample_rate": 16000,
-                    "em_bit_rate": 8,
-                    "save_record": 1,
+                    "em_sample_width": 2,
+                    "save_record": 0,
                     "save_format": "wav",
                     "save_sample_rate": 16000,
                     "save_bit_rate": 8,
@@ -193,13 +193,13 @@ class ChanEmedia(Chan):
             self.log.error(f'report_stop_em e={e}')
             self.log.exception(e)
 
-    async def send_event_destroy_em(self, trigger_tag: str):
+    async def send_event_destroy(self, trigger_tag: str):
         """
         This is an asynchronous function that reports the stop of an event manager.
 
         @return None
         """
-        self.log.info('send_event_destroy_em')
+        self.log.info('send_event_destroy')
         statuses = self.room.tags_statuses.get(trigger_tag)
         if statuses is None:
             return
@@ -231,29 +231,41 @@ class ChanEmedia(Chan):
             self.log.error(f'report_stop_em e={e}')
             self.log.exception(e)
 
-    async def check_trigger_chan_funcs(self):
+    async def check_trigger_chan_funcs(self, debug_log: int = 0):
         """
         This is an asynchronous function that checks the trigger channel functions.
         @return None
         """
-        for trigger in self.chan_plan.triggers:
-            if trigger.action == 'func' and trigger.active and trigger.func is not None:
+        if debug_log > 0:
+            self.log.debug(f'{debug_log}')
 
+        for trigger in self.chan_plan.triggers:
+            if debug_log > 0:
+                self.log.debug(f'trigger.trigger_tag={trigger.trigger_tag}'
+                               f' trigger.active={trigger.active}'
+                               f' trigger.action={trigger.action}'
+                               f' trigger.func={trigger.func}'
+                               f'debug_log = {debug_log}')
+            if trigger.action == 'func' and trigger.active and trigger.func is not None:
                 trigger_tag_statuses = self.room.tags_statuses.get(trigger.trigger_tag, [])
+
+                if debug_log > 0:
+                    self.log.debug(f'trigger_tag_statuses={trigger_tag_statuses} debug_log = {debug_log}')
+
                 if trigger.trigger_status in trigger_tag_statuses:
                     trigger.active = False
-                    if trigger.func == 'send_event_create_em':
-                        self.log.info('send_event_create_em')
-                        await self.send_event_create_em(trigger.trigger_tag)
+                    if trigger.func == 'send_event_create':
+                        self.log.info('send_event_create')
+                        await self.send_event_create(trigger.trigger_tag)
                     elif trigger.func == 'send_event_progress':
                         self.log.info('send_event_progress')
                         await self.send_event_progress(trigger.trigger_tag)
                     elif trigger.func == 'send_event_answer':
                         self.log.info('send_event_answer')
                         await self.send_event_answer(trigger.trigger_tag)
-                    elif trigger.func == 'send_event_destroy_em':
-                        self.log.info('send_event_destroy_em')
-                        await self.send_event_destroy_em(trigger.trigger_tag)
+                    elif trigger.func == 'send_event_destroy':
+                        self.log.info('send_event_destroy')
+                        await self.send_event_destroy(trigger.trigger_tag)
                     else:
                         self.log.info(f'no found func={trigger.func}')
                         pass

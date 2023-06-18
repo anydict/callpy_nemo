@@ -74,8 +74,8 @@ class Routers(object):
 
     def get_stats(self):
         stat_store = [0]
-        for room in self.dialer.rooms.values():
-            for status in room.tags_statuses.values():
+        for room in list(self.dialer.rooms.values()):
+            for status in list(room.tags_statuses.values()):
                 if status.get('external_time') != '':
                     d1 = datetime.strptime(status.get('external_time'), '%Y-%m-%dT%H:%M:%S.%f')
                     d2 = datetime.strptime(status.get('trigger_time'), '%Y-%m-%dT%H:%M:%S.%f')
@@ -111,8 +111,8 @@ class Routers(object):
     def get_chans(self):
         chans = []
         for room in self.dialer.rooms:
-            for bridge in self.dialer.rooms[room].bridges.values():
-                for chan in bridge.chans.values():
+            for bridge in list(self.dialer.rooms[room].bridges.values()):
+                for chan in list(bridge.chans.values()):
                     chans.append(chan)
 
         json_str = json.dumps({"chans": chans}, indent=4, default=str)
@@ -152,7 +152,7 @@ class Routers(object):
         lead.add_dial_option_for_phone('extphone', phone=str(params.extphone), callerid=str(params.intphone))
         lead.add_dial_option_for_phone('intphone', phone=str(params.intphone))
 
-        for room in self.dialer.rooms.values():
+        for room in list(self.dialer.rooms.values()):
             if room.lead.actionid == params.actionid:
                 return Response(content='{"res": "ERROR", "msg": "such actionid has already been launched"}',
                                 media_type='application/json')
@@ -177,7 +177,7 @@ class Routers(object):
             "actionid": params.actionid
         }, indent=4, default=str)
 
-        for room in self.dialer.rooms.values():
+        for room in list(self.dialer.rooms.values()):
             if room.lead.actionid == params.actionid:
                 event = TriggerEvent({
                     "type": "ExternalEvent",

@@ -28,6 +28,8 @@ class TriggerEvent:
 
         self.delay: float = self.calc_delay()
 
+        # All information about variable asterisk events
+        # https://wiki.asterisk.org/wiki/display/AST/Asterisk+20+REST+Data+Models#Asterisk20RESTDataModels-Dial
         self.tag: str = self.get_tag_from_event(event, self.event_type)
         self.druid: str = self.get_druid_from_event(event, self.event_type)
         self.status: str = self.get_status_from_event(event, self.event_type)
@@ -85,8 +87,9 @@ class TriggerEvent:
             if '-druid-' in event.get('channel').get('id'):
                 druid = event.get('channel').get('id').split('-druid-')[1]
 
-        elif event_type == 'Dial' and '-druid-' in event.get('peer').get('id'):
-            druid = event.get('peer').get('id').split('-druid-')[1]
+        elif event_type == 'Dial':
+            if '-druid-' in event.get('peer').get('id'):
+                druid = event.get('peer').get('id').split('-druid-')[1]
 
         elif event_type in ('BridgeCreated', 'ChannelEnteredBridge', 'ChannelLeftBridge', 'BridgeDestroyed'):
             if '-druid-' in event.get('bridge').get('id'):

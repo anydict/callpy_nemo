@@ -73,11 +73,14 @@ class Clip(object):
             await self.add_status_clip('fully_playback', value='True')
             return True
 
-    async def check_trigger_clip_funcs(self):
+    async def check_trigger_clip_funcs(self, debug_log):
         """
         This is an asynchronous function that checks the trigger clip functions.
 
         """
+        if debug_log > 0:
+            self.log.debug(f'debug_log={debug_log}')
+
         for trigger in self.clip_plan.triggers:
             if trigger.action != 'func' or trigger.func is None or trigger.active is False:
                 continue

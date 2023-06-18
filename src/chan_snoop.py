@@ -38,3 +38,6 @@ class ChanSnoop(Chan):
             else:
                 await self.add_status_chan('error_create_chan', value=str(create_chan_response.get('message')))
                 await self.add_status_chan('stop')
+
+    async def check_trigger_chan_funcs(self, debug_log: int = 0):
+        pass

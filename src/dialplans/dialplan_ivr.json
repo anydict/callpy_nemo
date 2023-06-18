@@ -259,6 +259,34 @@
               "trigger_status": "BridgeCreated",
               "action": "start",
               "active": true
+            },
+            {
+              "trigger_tag": "emedia_specialist",
+              "trigger_status": "ChannelVarset#BRIDGEPEER",
+              "action": "func",
+              "func": "send_event_create",
+              "active": true
+            },
+            {
+              "trigger_tag": "specialist",
+              "trigger_status": "Dial#PROGRESS",
+              "action": "func",
+              "func": "send_event_progress",
+              "active": true
+            },
+            {
+              "trigger_tag": "specialist",
+              "trigger_status": "Dial#ANSWER",
+              "action": "func",
+              "func": "send_event_answer",
+              "active": true
+            },
+            {
+              "trigger_tag": "emedia_specialist",
+              "trigger_status": "StasisEnd",
+              "action": "func",
+              "func": "send_event_destroy",
+              "active": true
             }
           ]
         },
@@ -331,9 +359,9 @@
             },
             {
               "trigger_tag": "emedia_client",
-              "trigger_status": "StasisStart",
+              "trigger_status": "ChannelVarset#BRIDGEPEER",
               "action": "func",
-              "func": "send_event_create_em",
+              "func": "send_event_create",
               "active": true
             },
             {
@@ -354,7 +382,7 @@
               "trigger_tag": "emedia_client",
               "trigger_status": "StasisEnd",
               "action": "func",
-              "func": "send_event_destroy_em",
+              "func": "send_event_destroy",
               "active": true
             }
           ]

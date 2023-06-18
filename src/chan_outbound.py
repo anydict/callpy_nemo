@@ -45,7 +45,7 @@ class ChanOutbound(Chan):
         else:
             self.log.warning('not found chan_name')
 
-    async def check_trigger_chan_funcs(self):
+    async def check_trigger_chan_funcs(self, debug_log: int = 0):
         """
         This is an asynchronous function that checks the trigger channel functions.
         """

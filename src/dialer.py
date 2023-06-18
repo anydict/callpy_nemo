@@ -75,16 +75,12 @@ class Dialer(object):
         """
         while self.config.alive:
             await asyncio.sleep(10)
-            druids_for_remove = []
-            for druid, room in self.rooms.items():
-                if room.check_tag_status('room', 'stop'):
+            for druid in list(self.rooms):
+                if self.rooms[druid].check_tag_status('room', 'stop'):
                     # TODO add save db tags statuses
-                    await room.bridge_termination_handler()
-                    druids_for_remove.append(druid)
-
-            for druid in druids_for_remove:
-                self.rooms.pop(druid)
-                self.log.info(f'remove room with druid={druid} from memory')
+                    await self.rooms[druid].bridge_termination_handler()
+                    self.rooms.pop(druid)
+                    self.log.info(f'remove room with druid={druid} from memory')
 
     async def start_dialer(self):
         """

@@ -1,4 +1,5 @@
 import asyncio
+import random
 from datetime import datetime
 
 from loguru import logger
@@ -51,7 +52,8 @@ class Room(object):
                              new_status: str,
                              external_time: str = "",
                              trigger_time: str = "",
-                             value: str = ""):
+                             value: str = "",
+                             debug_log: int = 0):
         """Stores tag status and run check triggers
 
         :param str tag: Object Tag
@@ -62,7 +64,7 @@ class Room(object):
         :return: None
 
         """
-        self.log.info(f' tag={tag} new status={new_status} ')
+        self.log.info(f' tag={tag} new status={new_status} value={value}')
 
         if tag not in self.tags_statuses:
             self.tags_statuses[tag] = {}
@@ -84,8 +86,12 @@ class Room(object):
             }
             self.tags_statuses[tag][new_status]["rewrite"].append(row_rewrite)
 
-        await self.check_trigger_room()
-        await self.check_trigger_bridges()
+        if new_status == 'THIS_FOR_DEBUG':
+            debug_log = random.randrange(0, 100000)
+            self.log.info(f'debug_log={debug_log}')
+
+        await self.check_trigger_room(debug_log)
+        await self.check_trigger_bridges(debug_log)
 
         await asyncio.sleep(0)
 
@@ -111,15 +117,11 @@ class Room(object):
         @return None
         """
         if self.config.alive:
-            bridge_tags_for_remove = []
-            for bridge_tag, bridge in self.bridges.items():
+            for bridge in list(self.bridges.values()):
                 await bridge.chan_termination_handler()
-                bridge_tags_for_remove.append(bridge_tag)
-
-            for bridge_tag in bridge_tags_for_remove:
-                self.bridges.pop(bridge_tag)
-                self.log.debug(f'remove bridge with tag={bridge_tag} from memory')
-            self.log.info(self.tags_statuses)
+                self.bridges.pop(bridge.tag)
+                self.log.debug(f'remove bridge with tag={bridge.tag} from memory')
+            self.log.debug(self.tags_statuses)
 
     async def start_room(self):
         """
@@ -131,21 +133,26 @@ class Room(object):
         self.log.info('start_room')
         await self.add_tag_status(tag=self.tag, new_status='ready')
 
-    async def check_trigger_room(self):
+    async def check_trigger_room(self, debug_log: int = 0):
         """
         This is an asynchronous function that checks if a trigger room is active.
 
         @return None
         """
+        if debug_log > 0:
+            self.log.debug(f'debug_log={debug_log}')
+
         for trigger in [trg for trg in self.room_plan.triggers if trg.action == 'terminate' and trg.active]:
             if trigger.trigger_status in self.tags_statuses.get(trigger.trigger_tag, []):
                 trigger.active = False
                 await self.add_tag_status(tag=self.tag, new_status='stop')
 
-    async def check_trigger_bridges(self):
+    async def check_trigger_bridges(self, debug_log: int = 0):
         """
         Asynchronous method that checks the status of bridges and triggers.
         """
+        if debug_log > 0:
+            self.log.debug(f'debug_log={debug_log}')
 
         for bridge_plan in self.bridges_plan:
             if bridge_plan.tag in [bridge.tag for bridge in self.bridges.values()]:
@@ -167,8 +174,10 @@ class Room(object):
                         self.bridges[bridge.tag] = bridge
                         asyncio.create_task(bridge.start_bridge())
 
-        for bridge in self.bridges.values():
-            await bridge.check_trigger_chans()
+        for bridge in list(self.bridges.values()):
+            if self.druid != bridge.druid:
+                self.log.error('WTF')
+            await bridge.check_trigger_chans(debug_log)
 
     async def trigger_event_handler(self, trigger_event: TriggerEvent):
         """
