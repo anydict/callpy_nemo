@@ -121,7 +121,7 @@ class Room(object):
                 await bridge.chan_termination_handler()
                 self.bridges.pop(bridge.tag)
                 self.log.debug(f'remove bridge with tag={bridge.tag} from memory')
-            # self.log.debug(self.tags_statuses)
+            self.log.debug(self.tags_statuses)
 
     async def start_room(self):
         """

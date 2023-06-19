@@ -1,3 +1,4 @@
+import asyncio
 import json
 from datetime import datetime
 
@@ -14,7 +15,20 @@ class ChanEmedia(Chan):
     external_host: str = ''
     em_host: str = ''
     em_port: int = 0
-    em_ssrc: int = 0
+    _em_ssrc: int = 0
+
+    @property
+    async def em_ssrc(self):
+        for i in range(4):
+            if self._em_ssrc > 0:
+                return self._em_ssrc
+            await asyncio.sleep(0.5)
+        self.log.error('no found em_ssrc!')
+        return self._em_ssrc
+
+    @em_ssrc.setter
+    def em_ssrc(self, ssrc: int):
+        self._em_ssrc = ssrc
 
     async def make_get_request(self, url, params=None):
         """
@@ -129,6 +143,7 @@ class ChanEmedia(Chan):
             return
 
         event_time = statuses.get('Dial#PROGRESS').get('external_time')
+        ssrc = await self.em_ssrc
 
         try:
             url = 'http://127.0.0.1:7005/events'
@@ -142,7 +157,7 @@ class ChanEmedia(Chan):
                 "info": {
                     "em_host": self.em_host,
                     "em_port": self.em_port,
-                    "em_ssrc": self.em_ssrc
+                    "em_ssrc": ssrc
                 }
             }
 
@@ -167,6 +182,7 @@ class ChanEmedia(Chan):
             return
 
         event_time = statuses.get('Dial#ANSWER').get('external_time')
+        ssrc = await self.em_ssrc
 
         try:
             url = 'http://127.0.0.1:7005/events'
@@ -180,7 +196,7 @@ class ChanEmedia(Chan):
                 "info": {
                     "em_host": self.em_host,
                     "em_port": self.em_port,
-                    "em_ssrc": self.em_ssrc
+                    "em_ssrc": ssrc
                 }
             }
 
@@ -205,6 +221,7 @@ class ChanEmedia(Chan):
             return
 
         event_time = statuses.get('StasisEnd').get('external_time')
+        ssrc = await self.em_ssrc
 
         try:
             url = 'http://127.0.0.1:7005/events'
@@ -218,7 +235,7 @@ class ChanEmedia(Chan):
                 "info": {
                     "em_host": self.em_host,
                     "em_port": self.em_port,
-                    "em_ssrc": self.em_ssrc
+                    "em_ssrc": ssrc
                 }
             }
 
