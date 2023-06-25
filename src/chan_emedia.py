@@ -30,7 +30,7 @@ class ChanEmedia(Chan):
     def em_ssrc(self, ssrc: int):
         self._em_ssrc = ssrc
 
-    async def make_get_request(self, url, params=None):
+    async def make_get_request(self, url, params=None, description=''):
         """
         This is an asynchronous function that makes a GET request to a specified URL with optional parameters.
 
@@ -41,7 +41,8 @@ class ChanEmedia(Chan):
         """
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, params=params) as response:
+                headers = {'druid': self.room.druid, 'description': description}
+                async with session.get(url, params=params, headers=headers) as response:
                     self.log.info(f'fetch_json url={url} params={params}')
                     status = response.status
                     body = await response.text()
@@ -54,10 +55,13 @@ class ChanEmedia(Chan):
         except ClientConnectorError:
             return 503, {"msg": "ClientConnectorError"}
 
-    async def make_post_request(self, url, data=None):
+    async def make_post_request(self, url, data=None, description=''):
         try:
             async with aiohttp.ClientSession() as session:
-                headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+                headers = {'Content-type': 'application/json',
+                           'Accept': 'text/plain',
+                           'druid': self.room.druid,
+                           'description': description}
                 async with session.post(url, data=json.dumps(data), headers=headers) as response:
                     self.log.info(f'fetch_json url={url} params={data}')
                     status = response.status
@@ -118,7 +122,7 @@ class ChanEmedia(Chan):
                     "detection_absolute_silence": 1
                 }
             }
-            status, data_response = await self.make_post_request(url, data)
+            status, data_response = await self.make_post_request(url, data, description='CREATE')
             if status == 200:
                 self.log.info(f'data_response={data_response}')
                 if 'ssrc' in data_response:
@@ -161,7 +165,7 @@ class ChanEmedia(Chan):
                 }
             }
 
-            status, data_response = await self.make_post_request(url, data)
+            status, data_response = await self.make_post_request(url, data, description='PROGRESS')
             if status == 200:
                 self.log.info(f'data_response={data_response}')
             else:
@@ -200,7 +204,7 @@ class ChanEmedia(Chan):
                 }
             }
 
-            status, data_response = await self.make_post_request(url, data)
+            status, data_response = await self.make_post_request(url, data, description='ANSWER')
             if status == 200:
                 self.log.info(f'data_response={data_response}')
             else:
@@ -239,7 +243,7 @@ class ChanEmedia(Chan):
                 }
             }
 
-            status, data_response = await self.make_post_request(url, data)
+            status, data_response = await self.make_post_request(url, data, description='DESTROY')
             if status == 200:
                 self.log.info(f'data_response={data_response}')
             else:
