@@ -3,8 +3,9 @@ import re
 from datetime import datetime
 from statistics import fmean
 
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 from loguru import logger
+from starlette.responses import JSONResponse
 
 from src.config import Config
 from src.dataclasses.trigger_event import TriggerEvent
@@ -23,6 +24,15 @@ class OriginateParams(BaseModel):
     dir: str
     calleridrule: str
     actionid: str | None
+
+
+class AnaliseParams(BaseModel):
+    analise_name: str
+    analise_time: str
+    send_time: str
+    token: str
+    druid: str
+    info: dict
 
 
 class HangupParams(BaseModel):
@@ -51,6 +61,8 @@ class Routers(object):
 
         self.router.add_api_route("/restart", self.restart, methods=["POST"])
         self.router.add_api_route("/originate", self.originate, methods=["POST"], tags=["originate"])
+
+        self.router.add_api_route("/analise", self.analise, methods=["POST"], tags=["analise"])
 
         # all the routes above are through this GET route
         self.router.add_api_route("/extapi", self.extapi, methods=["GET"])
@@ -170,6 +182,34 @@ class Routers(object):
         }, indent=4, default=str)
 
         return Response(content=json_str, media_type='application/json')
+
+    def analise(self, params: AnaliseParams):
+        if self.config.alive is False:
+            return Response(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        params.analise_name = params.analise_name.upper()
+
+        if params.analise_name == 'START_ANALISE':
+            pass
+        elif params.analise_name == 'FIRST_BEEP_DETECT':
+            pass
+        elif params.analise_name == 'FIRST_NOISE_AFTER_ANSWER_DETECT':
+            pass
+        elif params.analise_name == 'FIRST_VOICE_DETECT':
+            pass
+        elif params.analise_name == 'AUTO_ANSWER_DETECT':
+            pass
+        elif params.analise_name == 'ABSOLUTE_SILENCE_DETECT':
+            pass
+        elif params.analise_name == 'VOICE_TO_TEXT':
+            pass
+        elif params.analise_name == 'END_ANALISE':
+            pass
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"msg": "success"}
+        )
 
     def hangup(self, params: HangupParams):
         json_str = json.dumps({

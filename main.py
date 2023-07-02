@@ -3,9 +3,10 @@ import json
 import os
 import platform
 import sys
+import uuid
 
 import uvicorn
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, Depends
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from loguru import logger
@@ -64,12 +65,23 @@ async def app_startup():
     asyncio.create_task(dialer.alive())
 
 
+async def logging_dependency(request: Request):
+    uuid4_str = str(uuid.uuid4())
+    logger.debug(f"uuid4_str={uuid4_str} {request.method} {request.url}")
+    logger.debug(f"uuid4_str={uuid4_str} Params:")
+    for name, value in request.path_params.items():
+        logger.debug(f"uuid4_str={uuid4_str}\t{name}: {value}")
+    logger.debug(f"uuid4_str={uuid4_str} Headers:")
+    for name, value in request.headers.items():
+        logger.debug(f"uuid4_str={uuid4_str}\t{name}: {value}")
+
+
 app.add_middleware(CORSMiddleware,
                    allow_origins=[f"http://{config.app_api_host}:{config.app_api_port}"],
                    allow_credentials=True,
                    allow_methods=["*"],
                    allow_headers=["*"])
-app.include_router(routers.router)
+app.include_router(routers.router, dependencies=[Depends(logging_dependency)])
 
 
 @app.exception_handler(RequestValidationError)
@@ -106,8 +118,16 @@ if __name__ == "__main__":
         logger.info(f"Current pid: {os.getpid()}")
         logger.info(f"API bind address: {config.app_api_host}:{config.app_api_port}")
 
+        uvicorn_log_config = uvicorn.config.LOGGING_CONFIG
+        del uvicorn_log_config["loggers"]
+
         # Start FastAPI and our application through on_event startup
-        uvicorn.run("main:app", host=config.app_api_host, port=config.app_api_port, log_level="info", reload=True)
+        uvicorn.run(app=f'main:app',
+                    host=config.app_api_host,
+                    port=config.app_api_port,
+                    log_level="info",
+                    log_config=uvicorn_log_config,
+                    reload=False)
 
         logger.info(f"Shutting down")
     except KeyboardInterrupt:

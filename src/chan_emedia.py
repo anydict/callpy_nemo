@@ -113,7 +113,7 @@ class ChanEmedia(Chan):
                     "save_record": 1,
                     "save_format": "wav",
                     "save_sample_rate": 16000,
-                    "save_bit_rate": 8,
+                    "save_sample_width": 2,
                     "save_filename": f"CALLPY-20230615223858844427-druid-{self.room.druid}",
                     "save_concat_druid": "mixing",
                     "speech_recognition": 1,
