@@ -50,6 +50,13 @@ async def logging_dependency(request: Request):
 
 
 async def custom_validation_exception_handler(request: Request, exc: RequestValidationError):
+    """
+    logging validation error
+
+    @param request:
+    @param exc:
+    @return:
+    """
     errors = []
     for error in exc.errors():
         errors.append({
@@ -111,9 +118,6 @@ if __name__ == "__main__":
 
         app = FastAPI(exception_handlers={RequestValidationError: custom_validation_exception_handler})
 
-        app.add_event_handler('startup', app_startup)
-        app.add_event_handler('shutdown', app_shutdown)
-
         app.add_middleware(CORSMiddleware,
                            allow_origins=[f"http://{config.app_api_host}:{config.app_api_port}"],
                            allow_credentials=True,
@@ -133,7 +137,9 @@ if __name__ == "__main__":
         uvicorn_log_config = uvicorn.config.LOGGING_CONFIG
         del uvicorn_log_config["loggers"]
 
-        # Start FastAPI and our application through on_event startup
+        # Start FastAPI and our application in app_startup
+        app.add_event_handler('startup', app_startup)
+        app.add_event_handler('shutdown', app_shutdown)
         uvicorn.run(app=f'__main__:app',
                     host=config.app_api_host,
                     port=config.app_api_port,
@@ -144,3 +150,5 @@ if __name__ == "__main__":
         logger.info(f"Shutting down")
     except KeyboardInterrupt:
         logger.debug(f"User aborted through keyboard")
+    except Exception as e:
+        logger.exception(e)

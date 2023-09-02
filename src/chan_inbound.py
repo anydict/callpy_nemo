@@ -15,7 +15,7 @@ class ChanInbound(Chan):
         @return None
         """
         self.log.info('start ChanInbound')
-        if self.tag == 'specialist':
+        if self.tag == 'oper':
             create_chan_response = await self.ari.create_chan(chan_id=self.chan_id,
                                                               endpoint='SIP/asterisk_extapi-1/321',
                                                               callerid='321')

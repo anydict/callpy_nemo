@@ -89,6 +89,11 @@ class ChanOutbound(Chan):
                                                                         chan_id=self.chan_id)
             self.log.info(chan2bridge_response)
 
+            response_set_chan_var = await self.ari.set_chan_var(chan_id=self.chan_id,
+                                                                variable='CONNECTED(num)',
+                                                                value=dial_option.callerid)
+            self.log.info(response_set_chan_var)
+
             dial_chan_response = await self.ari.dial_chan(chan_id=self.chan_id)
             await self.add_status_chan('api_dial_chan', value=str(dial_chan_response.http_code))
 

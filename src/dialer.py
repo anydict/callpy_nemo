@@ -46,7 +46,7 @@ class Dialer(object):
             raw_dialplans['redir1_end8'] = json.load(plan_file)
 
         with open('src/dialplans/dialplan_ivr.json', "r") as plan_file:
-            raw_dialplans['specialist_client'] = json.load(plan_file)
+            raw_dialplans['oper_client'] = json.load(plan_file)
 
         return raw_dialplans
 

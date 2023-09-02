@@ -2,9 +2,7 @@ import asyncio
 import random
 from datetime import datetime
 from typing import Union
-
 from loguru import logger
-
 from src.ari.ari import ARI
 from src.bridge import Bridge
 from src.config import Config

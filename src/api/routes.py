@@ -149,7 +149,7 @@ class Routers(object):
             return Response(status_code=503)
 
         lead = Lead(lead_id=params.lead_id,
-                    dialplan_name='specialist_client')
+                    dialplan_name='oper_client')
         lead.add_dial_option_for_phone('extphone', phone=str(params.extphone), callerid=str(params.intphone))
         lead.add_dial_option_for_phone('intphone', phone=str(params.intphone))
 

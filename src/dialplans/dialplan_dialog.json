@@ -30,13 +30,13 @@
       "active": true
     },
     {
-      "trigger_tag": "specialist",
+      "trigger_tag": "oper",
       "trigger_status": "StasisEnd",
       "action": "terminate",
       "active": true
     },
     {
-      "trigger_tag": "specialist",
+      "trigger_tag": "oper",
       "trigger_status": "stop",
       "action": "terminate",
       "active": true
@@ -64,7 +64,7 @@
       "content": [
         {
           "type": "chan_outbound",
-          "tag": "specialist",
+          "tag": "oper",
           "status": "init",
           "params": {
             "dial_option_name": "intphone"
@@ -87,7 +87,7 @@
           },
           "triggers": [
             {
-              "trigger_tag": "specialist",
+              "trigger_tag": "oper",
               "trigger_status": "Dial#ANSWER",
               "action": "start",
               "active": true
@@ -98,11 +98,11 @@
     },
     {
       "type": "bridge",
-      "tag": "bridge_snoop_specialist",
+      "tag": "bridge_snoop_oper",
       "status": "init",
       "triggers": [
         {
-          "trigger_tag": "specialist",
+          "trigger_tag": "oper",
           "trigger_status": "StasisStart",
           "action": "start",
           "active": true
@@ -117,14 +117,14 @@
       "content": [
         {
           "type": "chan_emedia",
-          "tag": "emedia_specialist",
+          "tag": "emedia_oper",
           "status": "init",
           "params": {
             "external_host": "127.0.0.1:9999"
           },
           "triggers": [
             {
-              "trigger_tag": "bridge_snoop_specialist",
+              "trigger_tag": "bridge_snoop_oper",
               "trigger_status": "BridgeCreated",
               "action": "start",
               "active": true
@@ -133,14 +133,14 @@
         },
         {
           "type": "chan_snoop",
-          "tag": "snoop_specialist",
+          "tag": "snoop_oper",
           "status": "init",
           "params": {
-            "target_chan_tag": "specialist"
+            "target_chan_tag": "oper"
           },
           "triggers": [
             {
-              "trigger_tag": "emedia_specialist",
+              "trigger_tag": "emedia_oper",
               "trigger_status": "StasisStart",
               "action": "start",
               "active": true
@@ -177,7 +177,7 @@
           },
           "triggers": [
             {
-              "trigger_tag": "bridge_snoop_specialist",
+              "trigger_tag": "bridge_snoop_oper",
               "trigger_status": "BridgeCreated",
               "action": "start",
               "active": true

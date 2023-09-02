@@ -1,6 +1,6 @@
 {
   "tag": "room",
-  "name": "specialist_client",
+  "name": "oper_client",
   "type": "room",
   "status": "init",
   "timeout": 600,
@@ -12,14 +12,8 @@
       "active": true
     },
     {
-      "trigger_tag": "bridge_main",
-      "trigger_status": "DESTROY",
-      "action": "terminate",
-      "active": true
-    },
-    {
       "trigger_tag": "client",
-      "trigger_status": "StasisEnd",
+      "trigger_status": "ChannelHangupRequest",
       "action": "terminate",
       "active": true
     },
@@ -30,13 +24,13 @@
       "active": true
     },
     {
-      "trigger_tag": "specialist",
+      "trigger_tag": "oper",
       "trigger_status": "StasisEnd",
       "action": "terminate",
       "active": true
     },
     {
-      "trigger_tag": "specialist",
+      "trigger_tag": "oper",
       "trigger_status": "stop",
       "action": "terminate",
       "active": true
@@ -50,12 +44,6 @@
     {
       "trigger_tag": "ivr_clip",
       "trigger_status": "fully_playback",
-      "action": "terminate",
-      "active": true
-    },
-    {
-      "trigger_tag": "client",
-      "trigger_status": "ChannelHangupRequest",
       "action": "terminate",
       "active": true
     }
@@ -96,7 +84,14 @@
             },
             {
               "trigger_tag": "client",
-              "trigger_status": "Dial#BUSY",
+              "trigger_status": "Dial#RINGING",
+              "action": "func",
+              "func": "get_sip_and_q850",
+              "active": true
+            },
+            {
+              "trigger_tag": "client",
+              "trigger_status": "Dial#PROGRESS",
               "action": "func",
               "func": "get_sip_and_q850",
               "active": true
@@ -110,21 +105,35 @@
             },
             {
               "trigger_tag": "client",
-              "trigger_status": "Dial#RINGING",
+              "trigger_status": "Dial#BUSY",
               "action": "func",
               "func": "get_sip_and_q850",
               "active": true
             },
             {
               "trigger_tag": "client",
-              "trigger_status": "ChannelHangupRequest",
+              "trigger_status": "Dial#NOANSWER",
               "action": "func",
               "func": "get_sip_and_q850",
               "active": true
             },
             {
               "trigger_tag": "client",
-              "trigger_status": "StasisEnd",
+              "trigger_status": "Dial#CANCEL",
+              "action": "func",
+              "func": "get_sip_and_q850",
+              "active": true
+            },
+            {
+              "trigger_tag": "client",
+              "trigger_status": "Dial#CONGESTION",
+              "action": "func",
+              "func": "get_sip_and_q850",
+              "active": true
+            },
+            {
+              "trigger_tag": "client",
+              "trigger_status": "Dial#CHANUNAVAIL",
               "action": "func",
               "func": "get_sip_and_q850",
               "active": true
@@ -211,7 +220,7 @@
         },
         {
           "type": "chan_outbound",
-          "tag": "specialist",
+          "tag": "oper",
           "status": "init",
           "params": {
             "dial_option_name": "intphone"
@@ -222,6 +231,62 @@
               "trigger_status": "PlaybackFinished",
               "action": "start",
               "active": true
+            },
+            {
+              "trigger_tag": "oper",
+              "trigger_status": "Dial#RINGING",
+              "action": "func",
+              "func": "get_sip_and_q850",
+              "active": true
+            },
+            {
+              "trigger_tag": "oper",
+              "trigger_status": "Dial#PROGRESS",
+              "action": "func",
+              "func": "get_sip_and_q850",
+              "active": true
+            },
+            {
+              "trigger_tag": "oper",
+              "trigger_status": "Dial#ANSWER",
+              "action": "func",
+              "func": "get_sip_and_q850",
+              "active": true
+            },
+            {
+              "trigger_tag": "oper",
+              "trigger_status": "Dial#BUSY",
+              "action": "func",
+              "func": "get_sip_and_q850",
+              "active": true
+            },
+            {
+              "trigger_tag": "oper",
+              "trigger_status": "Dial#NOANSWER",
+              "action": "func",
+              "func": "get_sip_and_q850",
+              "active": true
+            },
+            {
+              "trigger_tag": "oper",
+              "trigger_status": "Dial#CANCEL",
+              "action": "func",
+              "func": "get_sip_and_q850",
+              "active": true
+            },
+            {
+              "trigger_tag": "oper",
+              "trigger_status": "Dial#CONGESTION",
+              "action": "func",
+              "func": "get_sip_and_q850",
+              "active": true
+            },
+            {
+              "trigger_tag": "oper",
+              "trigger_status": "Dial#CHANUNAVAIL",
+              "action": "func",
+              "func": "get_sip_and_q850",
+              "active": true
             }
           ]
         }
@@ -229,60 +294,54 @@
     },
     {
       "type": "bridge",
-      "tag": "bridge_snoop_specialist",
+      "tag": "bridge_snoop_oper",
       "status": "init",
       "triggers": [
         {
-          "trigger_tag": "specialist",
+          "trigger_tag": "oper",
           "trigger_status": "StasisStart",
           "action": "start",
-          "active": true
-        },
-        {
-          "trigger_tag": "room",
-          "trigger_status": "stop",
-          "action": "terminate",
           "active": true
         }
       ],
       "content": [
         {
           "type": "chan_emedia",
-          "tag": "emedia_specialist",
+          "tag": "emedia_oper",
           "status": "init",
           "params": {
             "external_host": "127.0.0.1:1234"
           },
           "triggers": [
             {
-              "trigger_tag": "bridge_snoop_specialist",
+              "trigger_tag": "bridge_snoop_oper",
               "trigger_status": "BridgeCreated",
               "action": "start",
               "active": true
             },
             {
-              "trigger_tag": "emedia_specialist",
+              "trigger_tag": "emedia_oper",
               "trigger_status": "ChannelVarset#BRIDGEPEER",
               "action": "func",
               "func": "send_event_create",
               "active": true
             },
             {
-              "trigger_tag": "specialist",
+              "trigger_tag": "oper",
               "trigger_status": "Dial#PROGRESS",
               "action": "func",
               "func": "send_event_progress",
               "active": true
             },
             {
-              "trigger_tag": "specialist",
+              "trigger_tag": "oper",
               "trigger_status": "Dial#ANSWER",
               "action": "func",
               "func": "send_event_answer",
               "active": true
             },
             {
-              "trigger_tag": "emedia_specialist",
+              "trigger_tag": "emedia_oper",
               "trigger_status": "StasisEnd",
               "action": "func",
               "func": "send_event_destroy",
@@ -292,14 +351,14 @@
         },
         {
           "type": "chan_snoop",
-          "tag": "snoop_specialist",
+          "tag": "snoop_oper",
           "status": "init",
           "params": {
-            "target_chan_tag": "specialist"
+            "target_chan_tag": "oper"
           },
           "triggers": [
             {
-              "trigger_tag": "emedia_specialist",
+              "trigger_tag": "emedia_oper",
               "trigger_status": "StasisStart",
               "action": "start",
               "active": true
@@ -317,12 +376,6 @@
           "trigger_tag": "client",
           "trigger_status": "StasisStart",
           "action": "start",
-          "active": true
-        },
-        {
-          "trigger_tag": "room",
-          "trigger_status": "stop",
-          "action": "terminate",
           "active": true
         }
       ],
