@@ -1,6 +1,7 @@
 import asyncio
 import random
 from datetime import datetime
+from typing import Union
 
 from loguru import logger
 
@@ -31,13 +32,13 @@ class Room(object):
 
         self.ari: ARI = ari
         self.config: Config = config
-        self.druid: str = lead.druid
+        self.call_id: str = lead.call_id
         self.lead: Lead = lead
         self.room_plan: Dialplan = Dialplan(raw_dialplan=raw_dialplan, app=app)  # Each room has its own Dialplan
         self.tag: str = self.room_plan.tag
 
         self.bridges_plan: list[Dialplan] = self.room_plan.content
-        self.room_id: str = f'{self.tag}-druid-{lead.druid}'
+        self.room_id: str = f'{self.tag}-call_id-{lead.call_id}'
 
         self.log = logger.bind(object_id=self.room_id)
         asyncio.create_task(self.add_tag_status(tag=self.tag,
@@ -105,10 +106,30 @@ class Room(object):
         """
         if tag not in self.tags_statuses:
             return False
-        elif status in self.tags_statuses[tag]:
-            return True
-        else:
+        elif status not in self.tags_statuses[tag]:
             return False
+        else:
+            return True
+
+    def get_first_time_tag_status(self, tag: str, status: str) -> Union[str, None]:
+        if tag not in self.tags_statuses:
+            self.log.warning(f'tag={tag} not found in tags_statuses')
+            return None
+        elif status not in self.tags_statuses[tag]:
+            self.log.warning(f'status={status} not found in tags_statuses[{tag}]')
+            return None
+        else:
+            tag_status = self.tags_statuses.get(tag, dict()).get(status, dict())
+            time = tag_status.get('external_time')
+            if time is None or time == '':
+                time = tag_status.get('trigger_time')
+            if time is None or time == '':
+                time = tag_status.get('add_status_time')
+            if time is None or time == '':
+                self.log.error(f'Not time in tags_statuses[{tag}][{status}]')
+                time = datetime.now().isoformat()
+
+            return time
 
     async def bridge_termination_handler(self):
         """
@@ -118,6 +139,9 @@ class Room(object):
         """
         if self.config.alive:
             for bridge in list(self.bridges.values()):
+                await self.add_tag_status(tag=self.tag,
+                                          new_status='stop',
+                                          value='bridge_termination_handler')
                 await bridge.chan_termination_handler()
                 self.bridges.pop(bridge.tag)
                 self.log.debug(f'remove bridge with tag={bridge.tag} from memory')
@@ -175,7 +199,7 @@ class Room(object):
                         asyncio.create_task(bridge.start_bridge())
 
         for bridge in list(self.bridges.values()):
-            if self.druid != bridge.druid:
+            if self.call_id != bridge.call_id:
                 self.log.error('WTF')
             await bridge.check_trigger_chans(debug_log)
 

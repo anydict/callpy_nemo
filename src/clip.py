@@ -25,11 +25,11 @@ class Clip(object):
         self.config = config
         self.room = room
         self.chan_id = chan_id
-        self.druid = room.druid
+        self.call_id = room.call_id
         self.clip_plan: Dialplan = clip_plan
         self.tag = clip_plan.tag
         self.params: dict = clip_plan.params
-        self.clip_id = f'{self.tag}-druid-{self.druid}'
+        self.clip_id = f'{self.tag}-call_id-{self.call_id}'
 
         self.log = logger.bind(object_id=self.clip_id)
         asyncio.create_task(self.add_status_clip(clip_plan.status, value=self.clip_id))
@@ -110,7 +110,7 @@ class Clip(object):
                                                                     clip_id=self.clip_id,
                                                                     name_audio=f"sound:{audio_name}")
 
-            await self.add_status_clip('api_start_playback', value=str(start_playback_response.get('http_code')))
+            await self.add_status_clip('api_start_playback', value=str(start_playback_response.http_code))
         else:
             await self.add_status_clip('error_in_audio_name')
 
@@ -123,4 +123,4 @@ class Clip(object):
         """
         self.log.info('stop_clip')
         stop_playback_response = await self.ari.stop_playback(clip_id=self.clip_id)
-        await self.add_status_clip('api_stop_playback', value=str(stop_playback_response.get('http_code')))
+        await self.add_status_clip('api_stop_playback', value=str(stop_playback_response.http_code))

@@ -23,7 +23,7 @@ class ChanInbound(Chan):
             create_chan_response = await self.ari.create_chan(chan_id=self.chan_id,
                                                               endpoint='SIP/asterisk_extapi-1/123',
                                                               callerid='123')
-        if create_chan_response.get('http_code') in (http.client.OK, http.client.NO_CONTENT):
+        if create_chan_response.http_code in (http.client.OK, http.client.NO_CONTENT):
             await self.ari.subscription(event_source=f'channel:{self.chan_id}')
             chan2bridge_response = await self.ari.add_channel_to_bridge(bridge_id=self.bridge_id,
                                                                         chan_id=self.chan_id)

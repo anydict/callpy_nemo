@@ -29,11 +29,11 @@ class Bridge(object):
         self.config = config
         self.room = room
         self.chans: dict[str, Union[ChanEmedia, ChanSnoop, ChanInbound, ChanOutbound]] = {}
-        self.druid = room.druid
+        self.call_id = room.call_id
         self.bridge_plan: Dialplan = bridge_plan
         self.chan_plan: list[Dialplan] = bridge_plan.content
         self.tag = bridge_plan.tag
-        self.bridge_id = f'{self.tag}-druid-{self.druid}'
+        self.bridge_id = f'{self.tag}-call_id-{self.call_id}'
         self.log = logger.bind(object_id=self.bridge_id)
         asyncio.create_task(self.add_status_bridge(bridge_plan.status, value=self.bridge_id))
 
@@ -64,6 +64,9 @@ class Bridge(object):
         """
         if self.config.alive:
             for chan_tag in list(self.chans):
+                await self.room.add_tag_status(tag=self.tag,
+                                               new_status='stop',
+                                               value='bridge_termination_handler')
                 await self.chans[chan_tag].clip_termination_handler()
                 self.chans.pop(chan_tag)
                 self.log.debug(f'remove chan with tag={chan_tag} from memory')
@@ -122,7 +125,7 @@ class Bridge(object):
             self.log.error(f'e={e}')
 
         for chan in list(self.chans.values()):
-            if chan.druid != self.druid:
+            if chan.call_id != self.call_id:
                 self.log.error('WTF')
             await chan.check_trigger_clips(debug_log)
             await chan.check_trigger_chan_funcs(debug_log)
@@ -135,7 +138,7 @@ class Bridge(object):
         """
         self.log.info('start_bridge')
         create_bridge_response = await self.ari.create_bridge(bridge_id=self.bridge_id)
-        await self.add_status_bridge('api_create_bridge', value=str(create_bridge_response.get('http_code')))
+        await self.add_status_bridge('api_create_bridge', value=str(create_bridge_response.http_code))
 
     async def destroy_bridge(self):
         """
@@ -146,4 +149,4 @@ class Bridge(object):
         """
         self.log.info('destroy_bridge')
         destroy_bridge_response = await self.ari.destroy_bridge(bridge_id=self.bridge_id)
-        await self.add_status_bridge('api_destroy_bridge', value=str(destroy_bridge_response.get('http_code')))
+        await self.add_status_bridge('api_destroy_bridge', value=str(destroy_bridge_response.http_code))

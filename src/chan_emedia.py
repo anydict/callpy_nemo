@@ -42,7 +42,7 @@ class ChanEmedia(Chan):
         """
         try:
             async with aiohttp.ClientSession() as session:
-                headers = {'druid': self.room.druid, 'description': description}
+                headers = {'call_id': self.room.call_id, 'description': description}
                 async with session.get(url, params=params, headers=headers) as response:
                     self.log.info(f'fetch_json url={url} params={params}')
                     status = response.status
@@ -61,7 +61,7 @@ class ChanEmedia(Chan):
             async with aiohttp.ClientSession() as session:
                 headers = {'Content-type': 'application/json',
                            'Accept': 'text/plain',
-                           'druid': self.room.druid,
+                           'call_id': self.room.call_id,
                            'description': description}
                 async with session.post(url, data=json.dumps(data), headers=headers) as response:
                     self.log.info(f'fetch_json url={url} params={data}')
@@ -100,7 +100,7 @@ class ChanEmedia(Chan):
             data = {
                 "event_name": "CREATE",
                 "event_time": event_time,
-                "druid": self.room.druid,
+                "call_id": self.room.call_id,
                 "chan_id": self.chan_id,
                 "send_time": datetime.now().isoformat(),
                 "token": "NE1K0Vz4pPa9PRJ+JtAibBZba7MlsWcPY+Qz8iRDTekMVz4+46Qn12q21234",
@@ -115,8 +115,8 @@ class ChanEmedia(Chan):
                     "save_format": "wav",
                     "save_sample_rate": 16000,
                     "save_sample_width": 2,
-                    "save_filename": f"CALLPY-20230615223858844427-druid-{self.room.druid}",
-                    "save_concat_druid": "mixing",
+                    "save_filename": f"CALLPY-20230615223858844427-call_id-{self.room.call_id}",
+                    "save_concat_call_id": "mixing",
                     "speech_recognition": 1,
                     "detection_autoresponse": 1,
                     "detection_voice_start": 1,
@@ -157,7 +157,7 @@ class ChanEmedia(Chan):
             data = {
                 "event_name": "PROGRESS",
                 "event_time": event_time,
-                "druid": self.room.druid,
+                "call_id": self.room.call_id,
                 "chan_id": self.chan_id,
                 "send_time": datetime.now().isoformat(),
                 "token": "NE1K0Vz4pPa9PRJ+JtAibBZba7MlsWcPY+Qz8iRDTekMVz4+46Qn12q21234",
@@ -196,7 +196,7 @@ class ChanEmedia(Chan):
             data = {
                 "event_name": "ANSWER",
                 "event_time": event_time,
-                "druid": self.room.druid,
+                "call_id": self.room.call_id,
                 "chan_id": self.chan_id,
                 "send_time": datetime.now().isoformat(),
                 "token": "NE1K0Vz4pPa9PRJ+JtAibBZba7MlsWcPY+Qz8iRDTekMVz4+46Qn12q21234",
@@ -235,7 +235,7 @@ class ChanEmedia(Chan):
             data = {
                 "event_name": "DESTROY",
                 "event_time": event_time,
-                "druid": self.room.druid,
+                "call_id": self.room.call_id,
                 "chan_id": self.chan_id,
                 "send_time": datetime.now().isoformat(),
                 "token": "NE1K0Vz4pPa9PRJ+JtAibBZba7MlsWcPY+Qz8iRDTekMVz4+46Qn12q21234",
@@ -312,14 +312,14 @@ class ChanEmedia(Chan):
 
             create_chan_response = await self.ari.create_emedia_chan(chan_id=self.chan_id,
                                                                      external_host=self.external_host)
-            await self.add_status_chan('api_create_chan', value=str(create_chan_response.get('http_code')))
+            await self.add_status_chan('api_create_chan', value=str(create_chan_response.http_code))
 
-            if create_chan_response.get('http_code') in (http.client.OK, http.client.NO_CONTENT):
+            if create_chan_response.http_code in (http.client.OK, http.client.NO_CONTENT):
                 await self.ari.subscription(event_source=f'channel:{self.chan_id}')
                 chan2bridge_response = await self.ari.add_channel_to_bridge(bridge_id=self.bridge_id,
                                                                             chan_id=self.chan_id)
-                await self.add_status_chan('api_chan2bridge', value=str(chan2bridge_response.get('http_code')))
+                await self.add_status_chan('api_chan2bridge', value=str(chan2bridge_response.http_code))
 
             else:
-                await self.add_status_chan('error_create_chan', value=str(create_chan_response.get('message')))
+                await self.add_status_chan('error_create_chan', value=str(create_chan_response.http_code))
                 await self.add_status_chan('stop')

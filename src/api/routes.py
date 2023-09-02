@@ -1,5 +1,4 @@
 import json
-import re
 from datetime import datetime
 from statistics import fmean
 
@@ -23,7 +22,7 @@ class OriginateParams(BaseModel):
     idclient: int
     dir: str
     calleridrule: str
-    actionid: str | None
+    lead_id: int
 
 
 class AnaliseParams(BaseModel):
@@ -31,13 +30,13 @@ class AnaliseParams(BaseModel):
     analise_time: str
     send_time: str
     token: str
-    druid: str
+    call_id: str
     info: dict
 
 
 class HangupParams(BaseModel):
     token: str
-    actionid: str
+    call_id: str
 
 
 class Routers(object):
@@ -87,10 +86,10 @@ class Routers(object):
     def get_stats(self):
         stat_store = [0]
         for room in list(self.dialer.rooms.values()):
-            for status in list(room.tags_statuses.values()):
-                if status.get('external_time') != '':
-                    d1 = datetime.strptime(status.get('external_time'), '%Y-%m-%dT%H:%M:%S.%f')
-                    d2 = datetime.strptime(status.get('trigger_time'), '%Y-%m-%dT%H:%M:%S.%f')
+            for tag_status in list(room.tags_statuses.values()):
+                if tag_status.get('external_time') != '':
+                    d1 = datetime.strptime(tag_status.get('external_time'), '%Y-%m-%dT%H:%M:%S.%f')
+                    d2 = datetime.strptime(tag_status.get('trigger_time'), '%Y-%m-%dT%H:%M:%S.%f')
                     diff = (d2 - d1).total_seconds()
                     stat_store.append(diff)
         json_str = json.dumps({
@@ -149,24 +148,14 @@ class Routers(object):
         if self.config.alive is False:
             return Response(status_code=503)
 
-        system_prefix = re.findall('^[A-z]+', params.actionid)
-        if len(system_prefix) == 0:
-            system_prefix = 'TESTER'
-
-        # lead = Lead(actionid=params.actionid,
-        #             pp=self.config.app,
-        #             dialplan_name='redir1_end8',
-        #             system_prefix=system_prefix)
-        lead = Lead(actionid=params.actionid,
-                    app=self.config.app,
-                    dialplan_name='specialist_client',
-                    system_prefix=system_prefix)
+        lead = Lead(lead_id=params.lead_id,
+                    dialplan_name='specialist_client')
         lead.add_dial_option_for_phone('extphone', phone=str(params.extphone), callerid=str(params.intphone))
         lead.add_dial_option_for_phone('intphone', phone=str(params.intphone))
 
         for room in list(self.dialer.rooms.values()):
-            if room.lead.actionid == params.actionid:
-                return Response(content='{"res": "ERROR", "msg": "such actionid has already been launched"}',
+            if room.lead.lead_id == params.lead_id:
+                return Response(content='{"res": "ERROR", "msg": "such lead_id has already been launched"}',
                                 media_type='application/json')
 
         self.dialer.queue_lead.append(lead)
@@ -178,7 +167,7 @@ class Routers(object):
             "idclient": params.idclient,
             "dir": dir,
             "calleridrule": params.calleridrule,
-            "actionid": lead.actionid
+            "call_id": lead.call_id
         }, indent=4, default=str)
 
         return Response(content=json_str, media_type='application/json')
@@ -214,22 +203,26 @@ class Routers(object):
     def hangup(self, params: HangupParams):
         json_str = json.dumps({
             "token": params.token,
-            "actionid": params.actionid
+            "call_id": params.call_id
         }, indent=4, default=str)
 
         for room in list(self.dialer.rooms.values()):
-            if room.lead.actionid == params.actionid:
-                event = TriggerEvent({
-                    "type": "ExternalEvent",
-                    "druid": room.druid,
-                    "tag": room.tag,
-                    "status": "api_hangup",
-                    "value": ""
-                })
-                self.dialer.queue_trigger_events.append(event)
+            if room.call_id == params.call_id:
+                event = TriggerEvent(app=self.config.app,
+                                     asterisk_id='',
+                                     event_type='API_EVENT',
+                                     external_time=datetime.now().isoformat(),
+                                     trigger_time=datetime.now().isoformat(),
+                                     delay=0,
+                                     tag=room.tag,
+                                     call_id=room.call_id,
+                                     status='stop',
+                                     value='api_hangup'
+                                     )
+                self.dialer.trigger_event_manager.append_queue_trigger_events(event)
                 return Response(content=json_str, media_type='application/json')
 
-        return Response(content='{"res": "ERROR", "msg": "Not found actionid"}', media_type='application/json')
+        return Response(content='{"res": "ERROR", "msg": "Not found call_id"}', media_type='application/json')
 
     def extapi(self,
                token: str = '',
@@ -239,7 +232,8 @@ class Routers(object):
                idclient: int = 0,
                dir: str = 'int',  # noqa
                calleridrule: str = 'pool',
-               actionid: str = ''
+               lead_id: int = 0,
+               call_id: str = ''
                ):
         json_str = json.dumps({
             "token": token,
@@ -249,7 +243,7 @@ class Routers(object):
             "idclient": idclient,
             "dir": dir,
             "calleridrule": calleridrule,
-            "actionid": actionid
+            "lead_id": lead_id
         }, indent=4, default=str)
 
         # TODO add work with token
@@ -266,7 +260,7 @@ class Routers(object):
                                          idclient=idclient,
                                          dir=dir,
                                          calleridrule=calleridrule,
-                                         actionid=actionid)
+                                         lead_id=lead_id)
             except ValidationError as e:
                 self.log.debug(f'ValidationError = {e} \n\n json_str = {json_str}')
                 return Response(content='{"res": "ERROR", "msg": "Incorrect fields in request"}',
@@ -275,7 +269,7 @@ class Routers(object):
         elif cmd == 'hangup':
             try:
                 params = HangupParams(token=token,
-                                      actionid=actionid)
+                                      call_id=call_id)
             except ValidationError as e:
                 self.log.debug(f'ValidationError = {e} \n\n json_str = {json_str}')
                 return Response(content='{"res": "ERROR", "msg": "Incorrect fields in request"}',
@@ -284,8 +278,8 @@ class Routers(object):
 
         return Response(content=json_str, media_type='application/json')
 
-    @staticmethod
-    async def not_found():
+    async def not_found(self):
+        self.log.debug('page not found')
         json_str = json.dumps({
             "msg": "Not found"
         }, indent=4, default=str)

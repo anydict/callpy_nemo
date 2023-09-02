@@ -27,12 +27,13 @@ class Chan(object):
         self.room = room
         self.clips: dict[str, Clip] = {}
         self.bridge_id = bridge_id
-        self.druid = self.room.druid
+        self.call_id = self.room.call_id
         self.chan_plan = chan_plan
         self.clips_plan: list[Dialplan] = chan_plan.content
         self.tag = chan_plan.tag
         self.params: dict = chan_plan.params
-        self.chan_id = f'{self.tag}-druid-{self.druid}'
+        self.chan_id = f'{self.tag}-call_id-{self.call_id}'
+        self.chan_name = ''  # set when created (if this need)
 
         self.log = logger.bind(object_id=self.chan_id)
         asyncio.create_task(self.add_status_chan(chan_plan.status, value=self.chan_id))
