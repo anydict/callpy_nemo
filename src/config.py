@@ -6,6 +6,7 @@ class Config(object):
                'app_api_port': 8005,
                'alive': True,
                'shutdown': False,
+               'log_console': True,
                'asterisk_host': '127.0.0.1',
                'asterisk_port': 8088,
                'asterisk_login': 'asterisk',
@@ -24,6 +25,7 @@ class Config(object):
         self.new_config.update(join_config)
         self.alive: bool = bool(self.new_config['alive'])  # if true then start kill FastAPI and APP
         self.shutdown: bool = bool(self.new_config['shutdown'])  # if true then waiting for finish all tasks
+        self.log_console: int = bool(self.new_config['log_console'])  # enable/disable log in console
 
         self.app: str = str(self.new_config['app'])
         self.app_api_host: str = str(self.new_config['app_api_host'])

@@ -18,7 +18,7 @@ class ChanEmedia(Chan):
     _em_ssrc: int = 0
 
     @property
-    async def em_ssrc(self):
+    async def em_ssrc(self) -> int:
         for i in range(4):
             if self._em_ssrc > 0:
                 return self._em_ssrc
@@ -37,6 +37,7 @@ class ChanEmedia(Chan):
         @param self - the instance of the class
         @param url - the URL to make the GET request to
         @param params - optional parameters to include in the GET request
+        @param description - this will be added in header
         @return a tuple containing the status code and data from the response
         """
         try:
@@ -119,7 +120,9 @@ class ChanEmedia(Chan):
                     "speech_recognition": 1,
                     "detection_autoresponse": 1,
                     "detection_voice_start": 1,
-                    "detection_absolute_silence": 1
+                    "detection_absolute_silence": 1,
+                    "callback_host": self.config.app_api_host,
+                    "callback_port": self.config.app_api_port
                 }
             }
             status, data_response = await self.make_post_request(url, data, description='CREATE')

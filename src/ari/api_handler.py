@@ -17,6 +17,10 @@ class APIHandler(object):
         self.log_api = logger.bind(object_id=f'APIHandler')
         self.count_request = 0
 
+    async def close_session(self):
+        if self._session:
+            await self._session.close()
+
     async def send(self, url: str, method: str, body: dict):
         self.count_request += 1
         number_request = self.count_request

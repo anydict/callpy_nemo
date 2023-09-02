@@ -28,6 +28,11 @@ class Dialer(object):
     def __del__(self):
         self.log.debug('object has died')
 
+    def close_session(self):
+        self.log.info('start close_session')
+        asyncio.create_task(self.ari.close_session())
+        self.log.info('end close_session')
+
     @staticmethod
     def load_raw_dialplans() -> dict:
         """
