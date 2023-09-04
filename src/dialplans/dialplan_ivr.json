@@ -302,6 +302,12 @@
           "trigger_status": "StasisStart",
           "action": "start",
           "active": true
+        },
+        {
+          "trigger_tag": "room",
+          "trigger_status": "stop",
+          "action": "terminate",
+          "active": true
         }
       ],
       "content": [
@@ -376,6 +382,12 @@
           "trigger_tag": "client",
           "trigger_status": "StasisStart",
           "action": "start",
+          "active": true
+        },
+        {
+          "trigger_tag": "room",
+          "trigger_status": "stop",
+          "action": "terminate",
           "active": true
         }
       ],

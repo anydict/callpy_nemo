@@ -92,23 +92,23 @@ if __name__ == "__main__":
                             "<cyan>{line}</cyan> - <level>{message}</level>"
 
         # for console
-        logger.add(sink=sys.stdout,
-                   filter=lambda record: record["level"].name == record["level"].name,
-                   format=custom_log_format,
-                   colorize=True)
-        # different files for different message types
         if config.log_console:
-            logger.add(sink="logs/debug.log",
-                       filter=lambda record: record["level"].name == "DEBUG",
-                       rotation="1000 MB",
-                       compression='gz',
-                       format=custom_log_format)
+            logger.add(sink=sys.stdout,
+                       filter=lambda record: record["level"].name == record["level"].name,
+                       format=custom_log_format,
+                       colorize=True)
+        # different files for different message types
+        logger.add(sink="logs/debug.log",
+                   filter=lambda record: record["level"].name == "DEBUG",
+                   rotation="1000 MB",
+                   compression='gz',
+                   format=custom_log_format)
         logger.add(sink="logs/error.log",
                    filter=lambda record: record["level"].name == "ERROR",
                    rotation="1000 MB",
                    compression='gz',
                    format=custom_log_format)
-        logger.add(sink="logs/callpy.log",
+        logger.add(sink=f"logs/{config.app}.log",
                    filter=lambda record: record["level"].name not in ("DEBUG", "ERROR"),
                    rotation="1000 MB",
                    compression='gz',

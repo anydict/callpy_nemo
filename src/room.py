@@ -137,7 +137,7 @@ class Room(object):
         """
         if self.config.alive:
             for bridge in list(self.bridges.values()):
-                await self.add_tag_status(tag=self.tag,
+                await self.add_tag_status(tag=bridge.tag,
                                           new_status='stop',
                                           value='bridge_termination_handler')
                 await bridge.chan_termination_handler()

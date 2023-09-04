@@ -12,3 +12,9 @@ class AriResponse(object):
         self.success: bool = success
         self.message: str = message
         self.json_content: dict = json_content
+
+    def __str__(self):
+        return str({"http_code": self.http_code,
+                    "success": self.success,
+                    "message": self.message,
+                    "json_content": self.json_content})
