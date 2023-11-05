@@ -5,7 +5,7 @@ from loguru import logger
 from src.ari.ari import ARI
 from src.clip import Clip
 from src.config import Config
-from src.dataclasses.dialplan import Dialplan
+from src.my_dataclasses.dialplan import Dialplan
 
 
 class Chan(object):

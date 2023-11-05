@@ -9,7 +9,7 @@ from src.chan_inbound import ChanInbound
 from src.chan_outbound import ChanOutbound
 from src.chan_snoop import ChanSnoop
 from src.config import Config
-from src.dataclasses.dialplan import Dialplan
+from src.my_dataclasses.dialplan import Dialplan
 
 
 class Bridge(object):
@@ -137,8 +137,9 @@ class Bridge(object):
         @return None
         """
         self.log.info('start_bridge')
-        create_bridge_response = await self.ari.create_bridge(bridge_id=self.bridge_id)
-        await self.add_status_bridge('api_create_bridge', value=str(create_bridge_response.http_code))
+        if self.room.check_tag_status(tag='room', status='stop') is False:
+            create_bridge_response = await self.ari.create_bridge(bridge_id=self.bridge_id)
+            await self.add_status_bridge('api_create_bridge', value=str(create_bridge_response.http_code))
 
     async def destroy_bridge(self):
         """

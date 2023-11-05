@@ -84,8 +84,6 @@ if __name__ == "__main__":
 
 
     tr_event_manager = TriggerEventManager()
-    dict_config = {"asterisk_host": "127.0.0.1", "asterisk_port": "8088",
-                   "asterisk_login": "asterisk", "asterisk_password": "asterisk"}
-    conf = Config(join_config=dict_config)
+    conf = Config()
     a = ARI(conf, tr_event_manager, 'test')
     asyncio.run(alive(a))

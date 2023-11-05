@@ -59,11 +59,8 @@ class ChanEmedia(Chan):
     async def make_post_request(self, url, data=None, description=''):
         try:
             async with aiohttp.ClientSession() as session:
-                headers = {'Content-type': 'application/json',
-                           'Accept': 'text/plain',
-                           'call_id': self.room.call_id,
-                           'description': description}
-                async with session.post(url, data=json.dumps(data), headers=headers) as response:
+                headers = {'call_id': self.room.call_id, 'description': description}
+                async with session.post(url, json=data, headers=headers) as response:
                     self.log.info(f'fetch_json url={url} params={data}')
                     status = response.status
                     body = await response.text()
@@ -96,7 +93,7 @@ class ChanEmedia(Chan):
             self.em_port = statuses.get('ChannelVarset#UNICASTRTP_LOCAL_PORT').get('value')
             event_time = statuses.get('ChannelVarset#BRIDGEPEER').get('external_time')
 
-            url = 'http://127.0.0.1:7005/events'
+            url = f'http://{self.config.pysonic_host}:{self.config.pysonic_port}/events'
             data = {
                 "event_name": "CREATE",
                 "event_time": event_time,
@@ -105,6 +102,7 @@ class ChanEmedia(Chan):
                 "send_time": datetime.now().isoformat(),
                 "token": "NE1K0Vz4pPa9PRJ+JtAibBZba7MlsWcPY+Qz8iRDTekMVz4+46Qn12q21234",
                 "info": {
+                    "chan_id": self.chan_id,
                     "em_host": self.em_host,
                     "em_port": int(self.em_port),
                     "em_wait_seconds": 5,
@@ -153,7 +151,7 @@ class ChanEmedia(Chan):
         ssrc = await self.em_ssrc
 
         try:
-            url = 'http://127.0.0.1:7005/events'
+            url = f'http://{self.config.pysonic_host}:{self.config.pysonic_port}/events'
             data = {
                 "event_name": "PROGRESS",
                 "event_time": event_time,
@@ -192,7 +190,7 @@ class ChanEmedia(Chan):
         ssrc = await self.em_ssrc
 
         try:
-            url = 'http://127.0.0.1:7005/events'
+            url = f'http://{self.config.pysonic_host}:{self.config.pysonic_port}/events'
             data = {
                 "event_name": "ANSWER",
                 "event_time": event_time,
@@ -231,7 +229,7 @@ class ChanEmedia(Chan):
         ssrc = await self.em_ssrc
 
         try:
-            url = 'http://127.0.0.1:7005/events'
+            url = f'http://{self.config.pysonic_host}:{self.config.pysonic_port}/events'
             data = {
                 "event_name": "DESTROY",
                 "event_time": event_time,

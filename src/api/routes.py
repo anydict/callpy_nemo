@@ -7,7 +7,7 @@ from loguru import logger
 from starlette.responses import JSONResponse
 
 from src.config import Config
-from src.dataclasses.trigger_event import TriggerEvent
+from src.my_dataclasses.trigger_event import TriggerEvent
 from src.dialer import Dialer
 from fastapi.responses import Response
 
@@ -78,7 +78,6 @@ class Routers(object):
             "app": self.config.app,
             "shutdown": self.config.shutdown,
             "alive": self.config.alive,
-            "current_time": datetime.now().isoformat()
         }, indent=4, default=str)
 
         return Response(content=json_str, media_type='application/json')
@@ -139,7 +138,6 @@ class Routers(object):
             "shutdown": self.config.shutdown,
             "alive": self.config.alive,
             "msg": "app restart started",
-            "current_time": datetime.now().isoformat()
         }, indent=4, default=str)
 
         return Response(content=json_str, media_type='application/json')

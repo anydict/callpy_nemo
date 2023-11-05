@@ -1,6 +1,6 @@
 from loguru import logger
 
-from src.dataclasses.dial_option import DialOption
+from src.my_dataclasses.dial_option import DialOption
 
 
 class Lead(object):

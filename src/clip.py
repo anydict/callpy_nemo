@@ -4,7 +4,7 @@ from loguru import logger
 
 from src.ari.ari import ARI
 from src.config import Config
-from src.dataclasses.dialplan import Dialplan
+from src.my_dataclasses.dialplan import Dialplan
 
 
 class Clip(object):

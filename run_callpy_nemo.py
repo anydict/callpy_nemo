@@ -1,9 +1,9 @@
 import asyncio
-import json
 import os
 import platform
 import sys
 import uuid
+from datetime import datetime
 
 import uvicorn
 from fastapi import FastAPI, Request, Depends
@@ -17,6 +17,7 @@ from src.config import Config
 from src.dialer import Dialer
 
 dialer = None
+config_path = os.path.join('config', 'config.json')
 
 
 async def app_startup():
@@ -39,23 +40,23 @@ async def app_shutdown():
 
 
 async def logging_dependency(request: Request):
-    uuid4_str = str(uuid.uuid4())
-    logger.debug(f"uuid4_str={uuid4_str} {request.method} {request.url}")
-    logger.debug(f"uuid4_str={uuid4_str} Params:")
+    api_id = str(uuid.uuid4())
+    logger.debug(f"api_id={api_id} {request.method} {request.url}")
+    logger.debug(f"api_id={api_id} Params:")
     for name, value in request.path_params.items():
-        logger.debug(f"uuid4_str={uuid4_str}\t{name}: {value}")
-    logger.debug(f"uuid4_str={uuid4_str} Headers:")
+        logger.debug(f"api_id={api_id}\t{name}: {value}")
+    logger.debug(f"api_id={api_id} Headers:")
     for name, value in request.headers.items():
-        logger.debug(f"uuid4_str={uuid4_str}\t{name}: {value}")
+        logger.debug(f"api_id={api_id}\t{name}: {value}")
 
 
-async def custom_validation_exception_handler(request: Request, exc: RequestValidationError):
+async def custom_validation_exception_handler(request: Request,
+                                              exc: RequestValidationError):
     """
     logging validation error
 
-    @param request:
-    @param exc:
-    @return:
+    @param request: API request
+    @param exc: Error information
     """
     errors = []
     for error in exc.errors():
@@ -66,6 +67,7 @@ async def custom_validation_exception_handler(request: Request, exc: RequestVali
         })
     logger.error(f"ValidationError in path: {request.url.path}")
     logger.error(f"ValidationError detail: {errors}")
+    logger.error(f"ValidationError client_info: {request.client}")
     logger.error(request.headers)
 
     request_body = await request.body()
@@ -76,12 +78,7 @@ async def custom_validation_exception_handler(request: Request, exc: RequestVali
 
 if __name__ == "__main__":
     try:
-        join_config = {}
-        if os.path.isfile('config.json'):
-            with open('config.json', "r") as jsonfile:
-                join_config = json.load(jsonfile)
-
-        config = Config(join_config=join_config)
+        config = Config(config_path=config_path)
 
         logger.configure(extra={"object_id": "None"})  # Default values if not bind extra variable
         logger.remove()  # this removes duplicates in the console if we use custom log format
@@ -98,18 +95,12 @@ if __name__ == "__main__":
                        format=custom_log_format,
                        colorize=True)
         # different files for different message types
-        logger.add(sink="logs/debug.log",
-                   filter=lambda record: record["level"].name == "DEBUG",
-                   rotation="1000 MB",
-                   compression='gz',
-                   format=custom_log_format)
         logger.add(sink="logs/error.log",
                    filter=lambda record: record["level"].name == "ERROR",
                    rotation="1000 MB",
                    compression='gz',
                    format=custom_log_format)
         logger.add(sink=f"logs/{config.app}.log",
-                   filter=lambda record: record["level"].name not in ("DEBUG", "ERROR"),
                    rotation="1000 MB",
                    compression='gz',
                    format=custom_log_format)
@@ -117,6 +108,20 @@ if __name__ == "__main__":
         logger = logger.bind(object_id='main')
 
         app = FastAPI(exception_handlers={RequestValidationError: custom_validation_exception_handler})
+
+
+        @app.middleware("http")
+        async def add_process_time_header(request: Request, call_next):
+            start_time = datetime.now()
+            response = await call_next(request)
+            process_time = (datetime.now() - start_time).total_seconds()
+            if process_time > 1:
+                logger.warning(f'Huge process time: {process_time}, {request.method} {request.url} {request.headers}')
+            response.headers['X-Current-Time'] = datetime.now().isoformat()
+            response.headers['X-Process-Time'] = str(process_time)
+            response.headers['Cache-Control'] = 'no-cache, no-store'
+            return response
+
 
         app.add_middleware(CORSMiddleware,
                            allow_origins=[f"http://{config.app_api_host}:{config.app_api_port}"],

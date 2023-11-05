@@ -85,13 +85,12 @@ class Dialer(object):
                 try:
                     if self.rooms[call_id].check_tag_status('room', 'stop'):
                         time_stop = self.rooms[call_id].get_first_time_tag_status('room', 'stop')
-                        if datetime.now() + timedelta(seconds=30) < datetime.fromisoformat(time_stop):
-                            # wait 30 sec after stop status
-                            continue
-                        # TODO add save db tags statuses
-                        await self.rooms[call_id].bridge_termination_handler()
-                        self.rooms.pop(call_id)
-                        self.log.info(f'remove room with call_id={call_id} from memory')
+                        if datetime.now() > datetime.fromisoformat(time_stop) + timedelta(seconds=10):
+                            # wait 10 sec after stop status
+                            # TODO add save db tags statuses
+                            await self.rooms[call_id].bridge_termination_handler()
+                            self.rooms.pop(call_id)
+                            self.log.info(f'remove room with call_id={call_id} from memory')
                 except Exception as e:
                     self.log.error(e)
                     self.log.exception(e)
@@ -120,12 +119,13 @@ class Dialer(object):
 
             lead = self.queue_lead.pop(0)  # get and remove first lead from queue
             raw_dialplan = self.get_raw_dialplan(lead.dialplan_name)
-            room_config = Config(self.config.join_config)  # Each room has its own Config
+            # room_config = Config(self.config.join_config)  # Each room has its own Config
 
             if self.rooms.get(lead.call_id) is not None:
                 self.log.error(f'Room with call_id={lead.call_id} already exists')
             else:
-                room = Room(ari=self.ari, config=room_config, lead=lead, raw_dialplan=raw_dialplan, app=self.app)
+                self.log.info(f'Go create ROOM with dialplan_name={lead.dialplan_name}')
+                room = Room(ari=self.ari, config=self.config, lead=lead, raw_dialplan=raw_dialplan, app=self.app)
                 asyncio.create_task(room.start_room())
                 self.rooms[lead.call_id] = room
 

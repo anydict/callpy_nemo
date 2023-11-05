@@ -5,7 +5,7 @@ import aiohttp
 from loguru import logger
 import http.client
 
-from src.dataclasses.ari_response import AriResponse
+from src.my_dataclasses.ari_response import AriResponse
 
 
 class APIHandler(object):
@@ -184,7 +184,7 @@ class APIHandler(object):
     async def destroy_bridge(self,
                              bridge_id: str,
                              include_channels: bool = True,
-                             reason_for_channels: str = '21') -> AriResponse:
+                             reason_for_channels: int = 21) -> AriResponse:
         if include_channels:
             bridge_detail_response = await self.get_bridge_detail(bridge_id)
             if bridge_detail_response.http_code == http.client.NOT_FOUND:
@@ -253,10 +253,10 @@ class APIHandler(object):
 
     async def delete_chan(self,
                           chan_id: str,
-                          reason_code: str) -> AriResponse:
+                          reason_code: str | int) -> AriResponse:
         return await self.send(url=f'{self._url}/channels/{chan_id}',
                                method='DELETE',
-                               body={'reason_code': reason_code})
+                               body={'reason_code': str(reason_code)})
 
     async def create_snoop_chan(self,
                                 target_chan_id: str,

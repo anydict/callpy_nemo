@@ -3,7 +3,7 @@ import re
 from src.chan import Chan
 import http.client
 
-from src.dataclasses.dial_option import DialOption
+from src.my_dataclasses.dial_option import DialOption
 
 
 class ChanOutbound(Chan):
@@ -87,15 +87,19 @@ class ChanOutbound(Chan):
             await self.ari.subscription(event_source=f'channel:{self.chan_id}')
             chan2bridge_response = await self.ari.add_channel_to_bridge(bridge_id=self.bridge_id,
                                                                         chan_id=self.chan_id)
-            self.log.info(chan2bridge_response)
+            if chan2bridge_response.success:
+                self.log.info(chan2bridge_response)
 
-            response_set_chan_var = await self.ari.set_chan_var(chan_id=self.chan_id,
-                                                                variable='CONNECTED(num)',
-                                                                value=dial_option.callerid)
-            self.log.info(response_set_chan_var)
+                response_set_chan_var = await self.ari.set_chan_var(chan_id=self.chan_id,
+                                                                    variable='CONNECTED(num)',
+                                                                    value=dial_option.callerid)
+                self.log.info(response_set_chan_var)
 
-            dial_chan_response = await self.ari.dial_chan(chan_id=self.chan_id)
-            await self.add_status_chan('api_dial_chan', value=str(dial_chan_response.http_code))
+                dial_chan_response = await self.ari.dial_chan(chan_id=self.chan_id)
+                await self.add_status_chan('api_dial_chan', value=str(dial_chan_response.http_code))
+            else:
+                self.log.warning(f'error in add chan to bridge, http_code={chan2bridge_response.http_code}')
+                await self.ari.delete_chan(chan_id=self.chan_id, reason_code=21)
 
         else:
             await self.add_status_chan('error_create_chan', value=create_chan_response.message)

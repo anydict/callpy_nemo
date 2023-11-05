@@ -6,8 +6,8 @@ from loguru import logger
 from src.ari.ari import ARI
 from src.bridge import Bridge
 from src.config import Config
-from src.dataclasses.dialplan import Dialplan
-from src.dataclasses.trigger_event import TriggerEvent
+from src.my_dataclasses.dialplan import Dialplan
+from src.my_dataclasses.trigger_event import TriggerEvent
 from src.lead import Lead
 
 
@@ -183,7 +183,7 @@ class Room(object):
                     # check match the status of the object being monitored by the trigger
                     if trigger.trigger_status in self.tags_statuses.get(trigger.trigger_tag, []):
                         trigger.active = False
-                        await self.bridges[bridge_plan.tag].destroy_bridge()
+                        asyncio.create_task(self.bridges[bridge_plan.tag].destroy_bridge())
             else:
                 # check start trigger if bridge does not exist
                 for trigger in [trg for trg in bridge_plan.triggers if trg.action == 'start' and trg.active]:

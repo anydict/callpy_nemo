@@ -2,7 +2,7 @@ from datetime import datetime
 
 from loguru import logger
 
-from src.dataclasses.trigger_event import TriggerEvent
+from src.my_dataclasses.trigger_event import TriggerEvent
 from src.good_func.good_func import fix_iso_timestamp
 
 UNKNOWN = 'UNKNOWN'
