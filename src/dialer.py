@@ -134,6 +134,8 @@ class Dialer(object):
         except asyncio.CancelledError:
             self.log.warning('asyncio.CancelledError')
 
+        await asyncio.sleep(1.1)
+
         self.log.info('start_dialer is end, go kill application')
 
         # close FastAPI and our application
