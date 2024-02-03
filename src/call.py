@@ -1,16 +1,16 @@
 from loguru import logger
 
-from src.my_dataclasses.dial_option import DialOption
+from src.custom_dataclasses.dial_option import DialOption
 
 
-class Lead(object):
+class Call(object):
     """The data needed for the call"""
 
     def __init__(self,
                  lead_id: int,
                  dialplan_name: str):
         """
-        This is a constructor for a class that represents a lead.
+        This is a constructor for a class that represents a call.
 
         @param lead_id
         @param dialplan_name - a string representing the dialplan name
@@ -20,10 +20,7 @@ class Lead(object):
         self.call_id: str = f'X{lead_id}'
         self.dialplan_name: str = dialplan_name
         self.dial_options: dict[str, DialOption] = {}
-        self.log = logger.bind(object_id=f'lead-{self.call_id}')
-
-    def __del__(self):
-        self.log.debug('object has died')
+        self.log = logger.bind(object_id=f'{self.__class__.__name__}-{self.call_id}')
 
     def add_dial_option_for_phone(self, option_name: str, phone: str, callerid: str = ''):
         """

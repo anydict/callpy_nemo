@@ -2,11 +2,12 @@
   "app": "callpy",
   "app_api_host": "127.0.0.1",
   "app_api_port": 8005,
-  "log_console": true,
+  "console_log": true,
   "asterisk_host": "127.0.0.1",
   "asterisk_port": 8090,
   "asterisk_login": "asterisk",
   "asterisk_password": "asterisk",
+  "asterisk_ari_log": false,
   "pysonic_host": "127.0.0.1",
   "pysonic_port": 7005
 }

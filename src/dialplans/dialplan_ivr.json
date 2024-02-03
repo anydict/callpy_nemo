@@ -148,7 +148,7 @@
                 "wait_before": 1,
                 "wait_after": 6,
                 "repeat": 1,
-                "audio_name": "custom/ivrclip_redir1_noclip8"
+                "media": "sound:custom/ivrclip_redir1_noclip8"
               },
               "triggers": [
                 {
@@ -186,7 +186,7 @@
                 "wait_before": 1,
                 "wait_after": 1,
                 "repeat": 1,
-                "audio_name": "hello"
+                "media": "sound:hello"
               },
               "triggers": [
                 {
@@ -205,7 +205,7 @@
                 "wait_before": 1,
                 "wait_after": 1,
                 "repeat": 1,
-                "audio_name": "goodbye"
+                "media": "sound:goodbye"
               },
               "triggers": [
                 {

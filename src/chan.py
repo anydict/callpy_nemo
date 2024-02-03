@@ -2,27 +2,27 @@ import asyncio
 
 from loguru import logger
 
-from src.ari.ari import ARI
 from src.clip import Clip
 from src.config import Config
-from src.my_dataclasses.dialplan import Dialplan
+from src.custom_dataclasses.dialplan import Dialplan
+from src.http_clients.http_asterisk_client import HttpAsteriskClient
 
 
 class Chan(object):
     """This class only for inheritance!"""
 
-    def __init__(self, ari: ARI, config: Config, room, bridge_id: str, chan_plan: Dialplan):
+    def __init__(self, asterisk_client: HttpAsteriskClient, config: Config, room, bridge_id: str, chan_plan: Dialplan):
         """
         This is a constructor for a class that initializes various instance variables.
 
-        @param ari - an instance of the ARI class
+        @param asterisk_client - HttpAsteriskClient object
         @param config - an instance of the Config class
         @param room - the room object
         @param bridge_id - the ID of the bridge
         @param chan_plan - the dialplan for the channel
         @return None
         """
-        self.ari = ari
+        self.asterisk_client: HttpAsteriskClient = asterisk_client
         self.config = config
         self.room = room
         self.clips: dict[str, Clip] = {}
@@ -39,13 +39,9 @@ class Chan(object):
         asyncio.create_task(self.add_status_chan(chan_plan.status, value=self.chan_id))
 
     def __del__(self):
-        """
-        This is a destructor method for a class. It is called when the object is destroyed.
-        It logs a debug message indicating that the object has died.
-
-        @return None
-        """
-        self.log.debug('object has died')
+        # DO NOT USE loguru here: https://github.com/Delgan/loguru/issues/712
+        if self.config.console_log:
+            print(f'{self.chan_id} object has died')
 
     async def add_status_chan(self, new_status, value: str = ""):
         asyncio.create_task(self.room.add_tag_status(self.tag, new_status, value=value))
@@ -82,7 +78,7 @@ class Chan(object):
             for trigger in [trg for trg in clip_plan.triggers if trg.action == 'start' and trg.active]:
                 if trigger.trigger_status in self.room.tags_statuses.get(trigger.trigger_tag, []):
                     trigger.active = False
-                    clip = Clip(ari=self.ari,
+                    clip = Clip(asterisk_client=self.asterisk_client,
                                 config=self.config,
                                 room=self.room,
                                 chan_id=self.chan_id,

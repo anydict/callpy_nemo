@@ -1,17 +1,20 @@
 from datetime import datetime
+from multiprocessing import Queue
+from queue import Empty
+from typing import Optional
 
 from loguru import logger
 
-from src.my_dataclasses.trigger_event import TriggerEvent
+from src.custom_dataclasses.trigger_event import TriggerEvent
 from src.good_func.good_func import fix_iso_timestamp
 
 UNKNOWN = 'UNKNOWN'
 
 
-class TriggerEventManager(object):
-    def __init__(self):
-        self.queue_trigger_events: [TriggerEvent] = []
-        self.log = logger.bind(object_id='TriggerEventManager')
+class QueueEventManager(object):
+    def __init__(self, queue_events: Queue):
+        self.queue_events: [TriggerEvent] = queue_events
+        self.log = logger.bind(object_id=self.__class__.__name__)
 
     def asterisk_event_to_trigger_event(self, event: dict) -> TriggerEvent:
         app: str = event.get('application') or UNKNOWN
@@ -43,16 +46,22 @@ class TriggerEventManager(object):
         return trigger_event
 
     def append_queue_trigger_events(self, trigger_event: TriggerEvent):
-        self.queue_trigger_events.append(trigger_event)
+        self.queue_events.put_nowait(trigger_event)
 
-    def pop_first_queue_trigger_events(self) -> TriggerEvent:
-        return self.queue_trigger_events.pop(0)
+    def pop_first_queue_trigger_events(self) -> Optional[TriggerEvent]:
+        try:
+            return self.queue_events.get_nowait()
+        except Empty:
+            return None
 
     @staticmethod
     def calc_delay(a_time, b_time) -> float:
-        a = datetime.strptime(a_time, "%Y-%m-%dT%H:%M:%S.%f")
-        b = datetime.strptime(b_time, "%Y-%m-%dT%H:%M:%S.%f")
-        return (b - a).total_seconds()
+        if a_time and b_time:
+            a = datetime.strptime(a_time, "%Y-%m-%dT%H:%M:%S.%f")
+            b = datetime.strptime(b_time, "%Y-%m-%dT%H:%M:%S.%f")
+            return (b - a).total_seconds()
+        else:
+            return 0
 
     @staticmethod
     def get_tag_from_event(event: dict, event_type: str):

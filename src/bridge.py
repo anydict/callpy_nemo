@@ -3,33 +3,33 @@ from typing import Union
 
 from loguru import logger
 
-from src.ari.ari import ARI
 from src.chan_emedia import ChanEmedia
 from src.chan_inbound import ChanInbound
 from src.chan_outbound import ChanOutbound
 from src.chan_snoop import ChanSnoop
 from src.config import Config
-from src.my_dataclasses.dialplan import Dialplan
+from src.custom_dataclasses.dialplan import Dialplan
+from src.http_clients.http_asterisk_client import HttpAsteriskClient
 
 
 class Bridge(object):
     """He runs channels and check chans triggers"""
 
-    def __init__(self, ari: ARI, config: Config, room, bridge_plan: Dialplan):
+    def __init__(self, asterisk_client: HttpAsteriskClient, config: Config, room, bridge_plan: Dialplan):
         """
         This is a constructor for a class that initializes various instance variables.
 
-        @param ari - an instance of the ARI class
+        @param asterisk_client - HttpAsteriskClient object
         @param config - an instance of the Config class
         @param room - the room object
         @param bridge_plan - an instance of the Dialplan class
         @return None
         """
-        self.ari = ari
-        self.config = config
+        self.asterisk_client: HttpAsteriskClient = asterisk_client
+        self.config: Config = config
         self.room = room
         self.chans: dict[str, Union[ChanEmedia, ChanSnoop, ChanInbound, ChanOutbound]] = {}
-        self.call_id = room.call_id
+        self.call_id: str = room.call_id
         self.bridge_plan: Dialplan = bridge_plan
         self.chan_plan: list[Dialplan] = bridge_plan.content
         self.tag = bridge_plan.tag
@@ -38,13 +38,9 @@ class Bridge(object):
         asyncio.create_task(self.add_status_bridge(bridge_plan.status, value=self.bridge_id))
 
     def __del__(self):
-        """
-        This is a destructor method for a class.
-        It is called when the object is destroyed and logs a debug message indicating that the object has died.
-
-        @return None
-        """
-        self.log.debug('object has died')
+        # DO NOT USE loguru here: https://github.com/Delgan/loguru/issues/712
+        if self.config.console_log:
+            print(f'{self.bridge_id} object has died')
 
     async def add_status_bridge(self, new_status, value: str = ''):
         """
@@ -86,25 +82,25 @@ class Bridge(object):
                     if trigger.trigger_status in self.room.tags_statuses.get(trigger.trigger_tag, []):
                         trigger.active = False
                         if chan_plan.type == 'chan_snoop':
-                            chan = ChanSnoop(ari=self.ari,
+                            chan = ChanSnoop(asterisk_client=self.asterisk_client,
                                              config=self.config,
                                              room=self.room,
                                              bridge_id=self.bridge_id,
                                              chan_plan=chan_plan)
                         elif chan_plan.type == 'chan_emedia':
-                            chan = ChanEmedia(ari=self.ari,
+                            chan = ChanEmedia(asterisk_client=self.asterisk_client,
                                               config=self.config,
                                               room=self.room,
                                               bridge_id=self.bridge_id,
                                               chan_plan=chan_plan)
                         elif chan_plan.type == 'chan_inbound':
-                            chan = ChanInbound(ari=self.ari,
+                            chan = ChanInbound(asterisk_client=self.asterisk_client,
                                                config=self.config,
                                                room=self.room,
                                                bridge_id=self.bridge_id,
                                                chan_plan=chan_plan)
                         elif chan_plan.type == 'chan_outbound':
-                            chan = ChanOutbound(ari=self.ari,
+                            chan = ChanOutbound(asterisk_client=self.asterisk_client,
                                                 config=self.config,
                                                 room=self.room,
                                                 bridge_id=self.bridge_id,
@@ -112,7 +108,7 @@ class Bridge(object):
                         else:
                             logger.error(f'Invalid type for chan in (tag={chan_plan.tag}, type={chan_plan.type}')
                             logger.warning(f'Try use type=chan_outbound')
-                            chan = ChanOutbound(ari=self.ari,
+                            chan = ChanOutbound(asterisk_client=self.asterisk_client,
                                                 config=self.config,
                                                 room=self.room,
                                                 bridge_id=self.bridge_id,
@@ -138,8 +134,18 @@ class Bridge(object):
         """
         self.log.info('start_bridge')
         if self.room.check_tag_status(tag='room', status='stop') is False:
-            create_bridge_response = await self.ari.create_bridge(bridge_id=self.bridge_id)
+            create_bridge_response = await self.asterisk_client.create_bridge(bridge_id=self.bridge_id)
             await self.add_status_bridge('api_create_bridge', value=str(create_bridge_response.http_code))
+
+            if create_bridge_response.success:
+                # Silence tone is necessary for the immediate transmission of RTP packets to the ExternalMedia channel
+                await self.asterisk_client.start_bridge_playback(bridge_id=self.bridge_id,
+                                                                 clip_id=f'SILENCE_TONE_{self.bridge_id}',
+                                                                 media='tone:0')
+            else:
+                self.log.error(f'Problem when creating a bridge, msg={create_bridge_response.message}')
+                await self.room.add_tag_status(tag=self.room.tag, new_status='stop', value='create_bridge_error')
+                await self.add_status_bridge('create_bridge_error', value=create_bridge_response.message)
 
     async def destroy_bridge(self):
         """
@@ -149,5 +155,5 @@ class Bridge(object):
         @return None
         """
         self.log.info('destroy_bridge')
-        destroy_bridge_response = await self.ari.destroy_bridge(bridge_id=self.bridge_id)
+        destroy_bridge_response = await self.asterisk_client.destroy_bridge(bridge_id=self.bridge_id)
         await self.add_status_bridge('api_destroy_bridge', value=str(destroy_bridge_response.http_code))

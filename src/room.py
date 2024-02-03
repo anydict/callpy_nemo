@@ -2,25 +2,27 @@ import asyncio
 import random
 from datetime import datetime
 from typing import Union
+
 from loguru import logger
-from src.ari.ari import ARI
+
 from src.bridge import Bridge
+from src.call import Call
 from src.config import Config
-from src.my_dataclasses.dialplan import Dialplan
-from src.my_dataclasses.trigger_event import TriggerEvent
-from src.lead import Lead
+from src.custom_dataclasses.dialplan import Dialplan
+from src.custom_dataclasses.trigger_event import TriggerEvent
+from src.http_clients.http_asterisk_client import HttpAsteriskClient
 
 
 class Room(object):
     """He runs bridges and stores all status inside the room and check room/bridges triggers"""
 
-    def __init__(self, ari: ARI, config: Config, lead: Lead, raw_dialplan: dict, app: str):
+    def __init__(self, asterisk_client: HttpAsteriskClient, config: Config, call: Call, raw_dialplan: dict, app: str):
         """
         This class is used to manage a conference room.
 
-        @param ari - An ARI object
+        @param asterisk_client - HttpAsteriskClient object
         @param config - A Config object
-        @param lead - A Lead object
+        @param call - A Call object
         @param raw_dialplan - A dictionary representing the dialplan
         @param app - A string representing the app
         @return None
@@ -28,15 +30,15 @@ class Room(object):
         self.bridges: dict[str, Bridge] = {}
         self.tags_statuses: dict[str, dict] = {}
 
-        self.ari: ARI = ari
+        self.asterisk_client: HttpAsteriskClient = asterisk_client
         self.config: Config = config
-        self.call_id: str = lead.call_id
-        self.lead: Lead = lead
+        self.call_id: str = call.call_id
+        self.call: Call = call
         self.room_plan: Dialplan = Dialplan(raw_dialplan=raw_dialplan, app=app)  # Each room has its own Dialplan
         self.tag: str = self.room_plan.tag
 
         self.bridges_plan: list[Dialplan] = self.room_plan.content
-        self.room_id: str = f'{self.tag}-call_id-{lead.call_id}'
+        self.room_id: str = f'{self.tag}-call_id-{call.call_id}'
 
         self.log = logger.bind(object_id=self.room_id)
         asyncio.create_task(self.add_tag_status(tag=self.tag,
@@ -44,7 +46,9 @@ class Room(object):
                                                 value=self.room_id))
 
     def __del__(self):
-        self.log.debug('object has died')
+        # DO NOT USE loguru here: https://github.com/Delgan/loguru/issues/712
+        if self.config.console_log:
+            print(f'{self.room_id} object has died')
 
     async def add_tag_status(self,
                              tag: str,
@@ -189,7 +193,7 @@ class Room(object):
                 for trigger in [trg for trg in bridge_plan.triggers if trg.action == 'start' and trg.active]:
                     if trigger.trigger_status in self.tags_statuses.get(trigger.trigger_tag, []):
                         trigger.active = False
-                        bridge = Bridge(ari=self.ari,
+                        bridge = Bridge(asterisk_client=self.asterisk_client,
                                         config=self.config,
                                         room=self,
                                         bridge_plan=bridge_plan)

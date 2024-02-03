@@ -2,30 +2,30 @@ import asyncio
 
 from loguru import logger
 
-from src.ari.ari import ARI
 from src.config import Config
-from src.my_dataclasses.dialplan import Dialplan
+from src.custom_dataclasses.dialplan import Dialplan
+from src.http_clients.http_asterisk_client import HttpAsteriskClient
 
 
 class Clip(object):
     """For work Playback on channel"""
 
-    def __init__(self, ari: ARI, config: Config, room, chan_id: str, clip_plan: Dialplan):
+    def __init__(self, asterisk_client: HttpAsteriskClient, config: Config, room, chan_id: str, clip_plan: Dialplan):
         """
         This is a constructor for a class that initializes various instance variables.
 
-        @param ari - an instance of the ARI class
+        @param asterisk_client - HttpAsteriskClient object
         @param config - an instance of the Config class
         @param room - the room object
         @param chan_id - the channel ID
         @param clip_plan - an instance of the Dialplan class
         @return None
         """
-        self.ari = ari
-        self.config = config
+        self.asterisk_client: HttpAsteriskClient = asterisk_client
+        self.config: Config = config
         self.room = room
-        self.chan_id = chan_id
-        self.call_id = room.call_id
+        self.chan_id: str = chan_id
+        self.call_id: str = room.call_id
         self.clip_plan: Dialplan = clip_plan
         self.tag = clip_plan.tag
         self.params: dict = clip_plan.params
@@ -35,13 +35,9 @@ class Clip(object):
         asyncio.create_task(self.add_status_clip(clip_plan.status, value=self.clip_id))
 
     def __del__(self):
-        """
-        This is a destructor method for a class. It is called when the object is destroyed.
-        It logs a debug message indicating that the object has died.
-
-        @return None
-        """
-        self.log.debug('object has died')
+        # DO NOT USE loguru here: https://github.com/Delgan/loguru/issues/712
+        if self.config.console_log:
+            print(f'{self.clip_id} object has died')
 
     async def add_status_clip(self, new_status, value: str = ''):
         """
@@ -104,14 +100,15 @@ class Clip(object):
         @return None
         """
         self.log.info('start clip')
-        audio_name = self.params.get('audio_name', None)
-        if audio_name is not None and len(audio_name) > 0:
-            start_playback_response = await self.ari.start_playback(chan_id=self.chan_id,
-                                                                    clip_id=self.clip_id,
-                                                                    name_audio=f"sound:{audio_name}")
+        media: str | list[str] = self.params.get('media', None)
+        if media is not None and len(media) > 0:
+            start_playback_response = await self.asterisk_client.start_chan_playback(chan_id=self.chan_id,
+                                                                                     clip_id=self.clip_id,
+                                                                                     media=f"{media}")
 
             await self.add_status_clip('api_start_playback', value=str(start_playback_response.http_code))
         else:
+            self.log.error('Not found media for clip')
             await self.add_status_clip('error_in_audio_name')
 
     async def stop_clip(self):
@@ -122,5 +119,5 @@ class Clip(object):
         @return None
         """
         self.log.info('stop_clip')
-        stop_playback_response = await self.ari.stop_playback(clip_id=self.clip_id)
+        stop_playback_response = await self.asterisk_client.stop_playback(clip_id=self.clip_id)
         await self.add_status_clip('api_stop_playback', value=str(stop_playback_response.http_code))

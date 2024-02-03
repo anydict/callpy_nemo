@@ -1,12 +1,12 @@
 import asyncio
 import json
 from datetime import datetime
+from typing import Optional
 
+import aiohttp
 from aiohttp import ClientConnectorError
 
 from src.chan import Chan
-import http.client
-import aiohttp
 
 
 class ChanEmedia(Chan):
@@ -15,20 +15,7 @@ class ChanEmedia(Chan):
     external_host: str = ''
     em_host: str = ''
     em_port: int = 0
-    _em_ssrc: int = 0
-
-    @property
-    async def em_ssrc(self) -> int:
-        for i in range(4):
-            if self._em_ssrc > 0:
-                return self._em_ssrc
-            await asyncio.sleep(0.5)
-        self.log.error('no found em_ssrc!')
-        return self._em_ssrc
-
-    @em_ssrc.setter
-    def em_ssrc(self, ssrc: int):
-        self._em_ssrc = ssrc
+    future_em_created: Optional[asyncio.Future] = None
 
     async def make_get_request(self, url, params=None, description=''):
         """
@@ -106,12 +93,12 @@ class ChanEmedia(Chan):
                     "em_host": self.em_host,
                     "em_port": int(self.em_port),
                     "em_wait_seconds": 5,
-                    "em_codec": "slin16",
-                    "em_sample_rate": 16000,
+                    "em_codec": "slin",
+                    "em_sample_rate": 8000,
                     "em_sample_width": 2,
                     "save_record": 1,
                     "save_format": "wav",
-                    "save_sample_rate": 16000,
+                    "save_sample_rate": 8000,
                     "save_sample_width": 2,
                     "save_filename": f"CALLPY-20230615223858844427-call_id-{self.room.call_id}",
                     "save_concat_call_id": "mixing",
@@ -124,14 +111,12 @@ class ChanEmedia(Chan):
                 }
             }
             status, data_response = await self.make_post_request(url, data, description='CREATE')
+            self.future_em_created.set_result('CREATED')
+
             if status == 200:
                 self.log.info(f'data_response={data_response}')
-                if 'ssrc' in data_response:
-                    self.em_ssrc = data_response['ssrc']
-                else:
-                    self.log.error('Not found ssrc')
             else:
-                self.log.error(f'status={data_response} and data={data_response}')
+                self.log.error(f'data_response={data_response} and status={status}')
         except Exception as e:
             self.log.error(f'report_start_ms e={e}')
             self.log.exception(e)
@@ -147,8 +132,18 @@ class ChanEmedia(Chan):
         if statuses is None:
             return
 
+        self.log.info("wait future_em_created")
+        await asyncio.wait([self.future_em_created],
+                           return_when=asyncio.FIRST_COMPLETED,
+                           timeout=60)
+
+        if self.future_em_created.done():
+            self.log.info("future_em_created is done")
+        else:
+            self.log.warning("future_em_created is NOT DONE!")
+            return
+
         event_time = statuses.get('Dial#PROGRESS').get('external_time')
-        ssrc = await self.em_ssrc
 
         try:
             url = f'http://{self.config.pysonic_host}:{self.config.pysonic_port}/events'
@@ -159,11 +154,7 @@ class ChanEmedia(Chan):
                 "chan_id": self.chan_id,
                 "send_time": datetime.now().isoformat(),
                 "token": "NE1K0Vz4pPa9PRJ+JtAibBZba7MlsWcPY+Qz8iRDTekMVz4+46Qn12q21234",
-                "info": {
-                    "em_host": self.em_host,
-                    "em_port": self.em_port,
-                    "em_ssrc": ssrc
-                }
+                "info": dict()
             }
 
             status, data_response = await self.make_post_request(url, data, description='PROGRESS')
@@ -187,7 +178,6 @@ class ChanEmedia(Chan):
             return
 
         event_time = statuses.get('Dial#ANSWER').get('external_time')
-        ssrc = await self.em_ssrc
 
         try:
             url = f'http://{self.config.pysonic_host}:{self.config.pysonic_port}/events'
@@ -198,11 +188,7 @@ class ChanEmedia(Chan):
                 "chan_id": self.chan_id,
                 "send_time": datetime.now().isoformat(),
                 "token": "NE1K0Vz4pPa9PRJ+JtAibBZba7MlsWcPY+Qz8iRDTekMVz4+46Qn12q21234",
-                "info": {
-                    "em_host": self.em_host,
-                    "em_port": self.em_port,
-                    "em_ssrc": ssrc
-                }
+                "info": dict()
             }
 
             status, data_response = await self.make_post_request(url, data, description='ANSWER')
@@ -226,7 +212,6 @@ class ChanEmedia(Chan):
             return
 
         event_time = statuses.get('StasisEnd').get('external_time')
-        ssrc = await self.em_ssrc
 
         try:
             url = f'http://{self.config.pysonic_host}:{self.config.pysonic_port}/events'
@@ -237,11 +222,7 @@ class ChanEmedia(Chan):
                 "chan_id": self.chan_id,
                 "send_time": datetime.now().isoformat(),
                 "token": "NE1K0Vz4pPa9PRJ+JtAibBZba7MlsWcPY+Qz8iRDTekMVz4+46Qn12q21234",
-                "info": {
-                    "em_host": self.em_host,
-                    "em_port": self.em_port,
-                    "em_ssrc": ssrc
-                }
+                "info": dict()
             }
 
             status, data_response = await self.make_post_request(url, data, description='DESTROY')
@@ -260,6 +241,9 @@ class ChanEmedia(Chan):
         """
         if debug_log > 0:
             self.log.debug(f'{debug_log}')
+
+        if self.future_em_created is None:
+            self.future_em_created = asyncio.get_running_loop().create_future()
 
         for trigger in self.chan_plan.triggers:
             if debug_log > 0:
@@ -308,14 +292,14 @@ class ChanEmedia(Chan):
             await self.add_status_chan('stop')
         else:
 
-            create_chan_response = await self.ari.create_emedia_chan(chan_id=self.chan_id,
-                                                                     external_host=self.external_host)
+            create_chan_response = await self.asterisk_client.create_emedia_chan(chan_id=self.chan_id,
+                                                                                 external_host=self.external_host)
             await self.add_status_chan('api_create_chan', value=str(create_chan_response.http_code))
 
-            if create_chan_response.http_code in (http.client.OK, http.client.NO_CONTENT):
-                await self.ari.subscription(event_source=f'channel:{self.chan_id}')
-                chan2bridge_response = await self.ari.add_channel_to_bridge(bridge_id=self.bridge_id,
-                                                                            chan_id=self.chan_id)
+            if create_chan_response.success:
+                await self.asterisk_client.subscription(event_source=f'channel:{self.chan_id}')
+                chan2bridge_response = await self.asterisk_client.add_channel_to_bridge(bridge_id=self.bridge_id,
+                                                                                        chan_id=self.chan_id)
                 await self.add_status_chan('api_chan2bridge', value=str(chan2bridge_response.http_code))
 
             else:

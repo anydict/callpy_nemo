@@ -11,32 +11,26 @@ from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from loguru import logger
 from starlette.middleware.cors import CORSMiddleware
+from starlette.responses import JSONResponse
 
 from src.api.routes import Routers
-from src.config import Config
+from src.config import Config, filter_error_log
 from src.dialer import Dialer
-
-dialer = None
-config_path = os.path.join('config', 'config.json')
 
 
 async def app_startup():
     """Run our application"""
-    global dialer
-    dialer = Dialer(config=config, app=config.app)
-    routers = Routers(config=config, dialer=dialer)
+    app.dialer = Dialer(config=config, app=config.app)
+    routers = Routers(config=config, dialer=app.dialer)
 
     app.include_router(routers.router, dependencies=[Depends(logging_dependency)])
 
-    asyncio.create_task(dialer.start_dialer())
-    asyncio.create_task(dialer.room_termination_handler())
-    asyncio.create_task(dialer.run_message_pump_for_rooms())
-    asyncio.create_task(dialer.alive())
+    asyncio.create_task(app.dialer.start_dialer())
 
 
 async def app_shutdown():
-    if isinstance(dialer, Dialer):
-        dialer.close_session()
+    if hasattr(app, 'dialer') and isinstance(app.dialer, Dialer):
+        await app.dialer.close_session()
 
 
 async def logging_dependency(request: Request):
@@ -78,6 +72,7 @@ async def custom_validation_exception_handler(request: Request,
 
 if __name__ == "__main__":
     try:
+        config_path = os.path.join('config', 'config.json')
         config = Config(config_path=config_path)
 
         logger.configure(extra={"object_id": "None"})  # Default values if not bind extra variable
@@ -89,14 +84,14 @@ if __name__ == "__main__":
                             "<cyan>{line}</cyan> - <level>{message}</level>"
 
         # for console
-        if config.log_console:
+        if config.console_log:
             logger.add(sink=sys.stdout,
                        filter=lambda record: record["level"].name == record["level"].name,
                        format=custom_log_format,
                        colorize=True)
         # different files for different message types
         logger.add(sink="logs/error.log",
-                   filter=lambda record: record["level"].name == "ERROR",
+                   filter=filter_error_log,
                    rotation="1000 MB",
                    compression='gz',
                    format=custom_log_format)
@@ -105,9 +100,10 @@ if __name__ == "__main__":
                    compression='gz',
                    format=custom_log_format)
 
-        logger = logger.bind(object_id='main')
+        logger = logger.bind(object_id=os.path.basename(__file__))
 
-        app = FastAPI(exception_handlers={RequestValidationError: custom_validation_exception_handler})
+        app = FastAPI(exception_handlers={RequestValidationError: custom_validation_exception_handler},
+                      version=config.app_version)
 
 
         @app.middleware("http")
@@ -121,6 +117,17 @@ if __name__ == "__main__":
             response.headers['X-Process-Time'] = str(process_time)
             response.headers['Cache-Control'] = 'no-cache, no-store'
             return response
+
+
+        @app.exception_handler(404)
+        async def custom_404_handler(request: Request, __):
+            msg = f"{request.method} API handler for {request.url} not found"
+            logger.warning(msg)
+            response = {
+                "status": "error",
+                "msg": msg
+            }
+            return JSONResponse(content=response, status_code=404)
 
 
         app.add_middleware(CORSMiddleware,
@@ -137,7 +144,11 @@ if __name__ == "__main__":
         logger.info(f"Machine: {uname.machine}")
         logger.info(f"Parent pid: {os.getppid()}")
         logger.info(f"Current pid: {os.getpid()}")
-        logger.info(f"API bind address: {config.app_api_host}:{config.app_api_port}")
+        logger.info(f"API bind address: http://{config.app_api_host}:{config.app_api_port}")
+        logger.info(f"Docs Swagger API address: http://{config.app_api_host}:{config.app_api_port}/docs")
+        logger.info(f"PySonic API address: http://{config.pysonic_host}:{config.pysonic_port}")
+        logger.info(f"App Version: {config.app_version}")
+        logger.info(f"Python Version: {config.python_version}")
 
         uvicorn_log_config = uvicorn.config.LOGGING_CONFIG
         del uvicorn_log_config["loggers"]

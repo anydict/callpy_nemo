@@ -3,16 +3,15 @@ from datetime import datetime
 from statistics import fmean
 
 from fastapi import APIRouter, status
+from fastapi.responses import Response
 from loguru import logger
+from pydantic import BaseModel, ValidationError
 from starlette.responses import JSONResponse
 
+from src.call import Call
 from src.config import Config
-from src.my_dataclasses.trigger_event import TriggerEvent
+from src.custom_dataclasses.trigger_event import TriggerEvent
 from src.dialer import Dialer
-from fastapi.responses import Response
-
-from src.lead import Lead
-from pydantic import BaseModel, ValidationError
 
 
 class OriginateParams(BaseModel):
@@ -43,30 +42,28 @@ class Routers(object):
     def __init__(self, config, dialer):
         self.config: Config = config
         self.dialer: Dialer = dialer
-        self.log = logger.bind(object_id='routers')
+        self.log = logger.bind(object_id=self.__class__.__name__)
 
         self.router = APIRouter(
             tags=["ALL"],
             responses={404: {"description": "Not found"}},
         )
-        self.router.add_api_route("/", self.get_root, methods=["GET"])
-        self.router.add_api_route("/diag", self.get_diag, methods=["GET"])
-        self.router.add_api_route("/stats", self.get_stats, methods=["GET"])
-        self.router.add_api_route("/rooms", self.get_rooms, methods=["GET"])
-        self.router.add_api_route("/rooms", self.get_rooms, methods=["GET"])
-        self.router.add_api_route("/bridges", self.get_bridges, methods=["GET"])
-        self.router.add_api_route("/chans", self.get_chans, methods=["GET"])
-        self.router.add_api_route("/hangup", self.hangup, methods=["DELETE"])
+        self.router.add_api_route(path="/", endpoint=self.get_root, methods=["GET"], tags=["Common"])
+        self.router.add_api_route(path="/diag", endpoint=self.get_diag, methods=["GET"], tags=["Common"])
+        self.router.add_api_route(path="/stats", endpoint=self.get_stats, methods=["GET"], tags=["Common"])
 
-        self.router.add_api_route("/restart", self.restart, methods=["POST"])
-        self.router.add_api_route("/originate", self.originate, methods=["POST"], tags=["originate"])
+        self.router.add_api_route(path="/rooms", endpoint=self.get_rooms, methods=["GET"], tags=["Call"])
+        self.router.add_api_route(path="/bridges", endpoint=self.get_bridges, methods=["GET"], tags=["Call"])
+        self.router.add_api_route(path="/chans", endpoint=self.get_chans, methods=["GET"], tags=["Call"])
+        self.router.add_api_route(path="/hangup", endpoint=self.hangup, methods=["DELETE"], tags=["Call"])
 
-        self.router.add_api_route("/analise", self.analise, methods=["POST"], tags=["analise"])
+        self.router.add_api_route(path="/restart", endpoint=self.restart, methods=["POST"], tags=["Call"])
+        self.router.add_api_route(path="/originate", endpoint=self.originate, methods=["POST"], tags=["Call"])
+
+        self.router.add_api_route(path="/analise", endpoint=self.analise, methods=["POST"], tags=["MediaSonic"])
 
         # all the routes above are through this GET route
-        self.router.add_api_route("/extapi", self.extapi, methods=["GET"])
-
-        self.router.add_api_route("/{not_found}", self.not_found, methods=["POST"])
+        self.router.add_api_route(path="/extapi", endpoint=self.extapi, methods=["GET"], tags=["ExtApi"])
 
     def get_root(self):
         json_str = json.dumps({"app": "callpy", "server": self.config.asterisk_host}, indent=4, default=str)
@@ -76,7 +73,7 @@ class Routers(object):
     def get_diag(self):
         json_str = json.dumps({
             "app": self.config.app,
-            "shutdown": self.config.shutdown,
+            "wait_shutdown": self.config.wait_shutdown,
             "alive": self.config.alive,
         }, indent=4, default=str)
 
@@ -130,12 +127,12 @@ class Routers(object):
         return Response(content=json_str, media_type='application/json')
 
     def restart(self):
-        self.config.shutdown = True
+        self.config.wait_shutdown = True
 
         json_str = json.dumps({
             "app": self.config.app,
             "server": self.config.asterisk_host,
-            "shutdown": self.config.shutdown,
+            "wait_shutdown": self.config.wait_shutdown,
             "alive": self.config.alive,
             "msg": "app restart started",
         }, indent=4, default=str)
@@ -146,17 +143,17 @@ class Routers(object):
         if self.config.alive is False:
             return Response(status_code=503)
 
-        lead = Lead(lead_id=params.lead_id,
+        call = Call(lead_id=params.lead_id,
                     dialplan_name='oper_client')
-        lead.add_dial_option_for_phone('extphone', phone=str(params.extphone), callerid=str(params.intphone))
-        lead.add_dial_option_for_phone('intphone', phone=str(params.intphone))
+        call.add_dial_option_for_phone('extphone', phone=str(params.extphone), callerid=str(params.intphone))
+        call.add_dial_option_for_phone('intphone', phone=str(params.intphone))
 
         for room in list(self.dialer.rooms.values()):
-            if room.lead.lead_id == params.lead_id:
+            if room.call.lead_id == params.lead_id:
                 return Response(content='{"res": "ERROR", "msg": "such lead_id has already been launched"}',
                                 media_type='application/json')
 
-        self.dialer.queue_lead.append(lead)
+        self.dialer.call_queue.append(call)
 
         json_str = json.dumps({
             "token": params.token,
@@ -165,7 +162,7 @@ class Routers(object):
             "idclient": params.idclient,
             "dir": dir,
             "calleridrule": params.calleridrule,
-            "call_id": lead.call_id
+            "call_id": call.call_id
         }, indent=4, default=str)
 
         return Response(content=json_str, media_type='application/json')
@@ -275,10 +272,3 @@ class Routers(object):
             return self.hangup(params)
 
         return Response(content=json_str, media_type='application/json')
-
-    async def not_found(self):
-        self.log.debug('page not found')
-        json_str = json.dumps({
-            "msg": "Not found"
-        }, indent=4, default=str)
-        return Response(content=json_str, status_code=404)

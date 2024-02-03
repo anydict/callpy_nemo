@@ -2,37 +2,43 @@ import asyncio
 import json
 import os
 from datetime import datetime, timedelta
-from typing import Union
+from multiprocessing import Event, Queue
 
 from loguru import logger
 
-from src.ari.ari import ARI
+from src.call import Call
 from src.config import Config
-from src.lead import Lead
+from src.http_clients.http_asterisk_client import HttpAsteriskClient
 from src.room import Room
-from src.trigger_event_manager import TriggerEventManager
+from src.trigger_event_manager import QueueEventManager
+from src.ws_clients.asterisk_web_socket import AsteriskWebSocket
 
 
 class Dialer(object):
     """He runs calls and send messages in rooms"""
 
     def __init__(self, config: Config, app: str):
-        self.ari: Union[ARI, None] = None
         self.config: Config = config
-        self.trigger_event_manager = TriggerEventManager()
-        self.queue_lead: list[Lead] = self.load_leads()
+        self.queue_events: Queue = Queue()
+        self.finish_event: Event = Event()
+        self.trigger_event_manager = QueueEventManager(queue_events=self.queue_events)
+        self.asterisk_client: HttpAsteriskClient = HttpAsteriskClient(config=config)
+        self.call_queue: list[Call] = self.load_calls()
         self.raw_dialplans: dict = self.load_raw_dialplans()
         self.app = app
-        self.log = logger.bind(object_id='dialer')
+        self.log = logger.bind(object_id=self.__class__.__name__)
         self.rooms: dict[str, Room] = {}
 
     def __del__(self):
         self.log.debug('object has died')
 
-    def close_session(self):
+    async def close_session(self):
         self.log.info('start close_session')
-        asyncio.create_task(self.ari.close_session())
+        self.finish_event.set()
+        await self.asterisk_client.close_session()
+        self.config.wait_shutdown = True
         self.log.info('end close_session')
+        await asyncio.sleep(4)
 
     @staticmethod
     def load_raw_dialplans() -> dict:
@@ -51,18 +57,23 @@ class Dialer(object):
         return raw_dialplans
 
     @staticmethod
-    def load_leads() -> list[Lead]:
+    def load_calls() -> list[Call]:
         """
-        This function loads leads and returns them as a list of Lead objects.
+        This function loads calls and returns them as a list of Call objects.
 
-        @return A list of Lead objects.
+        @return A list of Call objects.
         """
-        # with open('src/leads.json', "r") as lead_json:
-        #     lead = Lead(json.load(lead_json))
+        # with open('src/calls.json', "r") as json_content:
+        #     call = Call(json.load(json_content))
 
         return []
 
-    async def alive(self):
+    @staticmethod
+    async def smart_sleep(delay: int):
+        for _ in range(0, delay):
+            await asyncio.sleep(delay)
+
+    async def alive_report(self):
         """
         This is an asynchronous function that runs in the background
         And logs a message every 60 seconds while the `alive` flag is set to `True`.
@@ -71,7 +82,9 @@ class Dialer(object):
         """
         while self.config.alive:
             self.log.info(f"alive")
-            await asyncio.sleep(60)
+            await self.smart_sleep(60)
+
+        self.log.info('end alive report')
 
     async def room_termination_handler(self):
         """
@@ -80,7 +93,7 @@ class Dialer(object):
         @return None
         """
         while self.config.alive:
-            await asyncio.sleep(10)
+            await self.smart_sleep(13)
             for call_id in list(self.rooms):
                 try:
                     if self.rooms[call_id].check_tag_status('room', 'stop'):
@@ -102,43 +115,56 @@ class Dialer(object):
         @return None
         """
         self.log.info('start_dialer')
-        self.ari = ARI(self.config, self.trigger_event_manager, self.app)
-        await self.ari.connect()
 
-        peers = await self.ari.get_peers()
-        subscribe = await self.ari.subscription()
+        asterisk_web_socket: AsteriskWebSocket = AsteriskWebSocket(config=self.config,
+                                                                   queue_events=self.queue_events,
+                                                                   finish_event=self.finish_event)
+        asterisk_web_socket.start()
 
+        peers = await self.asterisk_client.get_peers()
         self.log.info(f"Peers: {peers}")
-        self.log.info(f"Subscribe: {subscribe}")
 
-        # run new call until receive "restart" request (see api/routes.py)
-        while self.config.shutdown is False:
-            if len(self.queue_lead) == 0:
-                await asyncio.sleep(0.1)
-                continue
+        asyncio.create_task(self.room_termination_handler())
+        asyncio.create_task(self.run_message_pump_for_rooms())
+        asyncio.create_task(self.alive_report())
 
-            lead = self.queue_lead.pop(0)  # get and remove first lead from queue
-            raw_dialplan = self.get_raw_dialplan(lead.dialplan_name)
-            # room_config = Config(self.config.join_config)  # Each room has its own Config
+        try:
+            while self.config.wait_shutdown is False:
+                await self.run_room_builder()
+        except asyncio.CancelledError:
+            self.log.warning('asyncio.CancelledError')
 
-            if self.rooms.get(lead.call_id) is not None:
-                self.log.error(f'Room with call_id={lead.call_id} already exists')
-            else:
-                self.log.info(f'Go create ROOM with dialplan_name={lead.dialplan_name}')
-                room = Room(ari=self.ari, config=self.config, lead=lead, raw_dialplan=raw_dialplan, app=self.app)
-                asyncio.create_task(room.start_room())
-                self.rooms[lead.call_id] = room
+        self.log.info('start_dialer is end, go kill application')
 
-        while len(list(self.rooms)) > 0:
-            await asyncio.sleep(1)
-
-        # full stop app
+        # close FastAPI and our application
         self.config.alive = False
-        # close FastAPI and our app
-        parent_pid = os.getppid()
         current_pid = os.getpid()
-        os.kill(parent_pid, 9)
         os.kill(current_pid, 9)
+
+    async def run_room_builder(self):
+        # run new call until receive "restart" request (see api/routes.py)
+        try:
+            if len(self.call_queue) == 0:
+                await asyncio.sleep(0.1)
+                return
+
+            call = self.call_queue.pop(0)  # get and remove first call from queue
+            raw_dialplan = self.get_raw_dialplan(call.dialplan_name)
+
+            if self.rooms.get(call.call_id) is not None:
+                self.log.error(f'Room with call_id={call.call_id} already exists')
+            else:
+                self.log.info(f'Go create ROOM with dialplan_name={call.dialplan_name}')
+                room = Room(asterisk_client=self.asterisk_client,
+                            config=self.config,
+                            call=call,
+                            raw_dialplan=raw_dialplan,
+                            app=self.app)
+                asyncio.create_task(room.start_room())
+                self.rooms[call.call_id] = room
+
+        except Exception as e:
+            self.log.exception(e)
 
     async def run_message_pump_for_rooms(self):
         """
@@ -148,17 +174,20 @@ class Dialer(object):
         @return None
         """
         self.log.info('run_message_pump_for_rooms')
-        while self.config.alive:
-            if len(self.trigger_event_manager.queue_trigger_events) == 0:
-                await asyncio.sleep(0.1)
-                continue
+        try:
+            while self.config.wait_shutdown is False:
+                event = self.trigger_event_manager.pop_first_queue_trigger_events()
+                if event is None:
+                    await asyncio.sleep(0.1)
+                    continue
 
-            event = self.trigger_event_manager.pop_first_queue_trigger_events()  # get and remove first event
-            self.log.debug(event)
+                self.log.debug(event)
 
-            if event.call_id in self.rooms:
-                room: Room = self.rooms[event.call_id]
-                await room.trigger_event_handler(event)
+                if event.call_id in self.rooms:
+                    room: Room = self.rooms[event.call_id]
+                    await room.trigger_event_handler(event)
+        except Exception as e:
+            self.log.error(e)
 
     def get_raw_dialplan(self, name: str) -> dict:
         """

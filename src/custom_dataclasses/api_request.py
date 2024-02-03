@@ -1,4 +1,4 @@
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from uuid import uuid4
 
 
@@ -8,13 +8,15 @@ class ApiRequest(object):
     method: str
     request: dict = None
     timeout: int = None
-    correct_http_code: set = (200, 201, 204, 404)
+    correct_http_code: set = (200, 201, 202, 204, 404)
     debug_log: bool = True
     attempts: int = 3
-    api_id: str = None
+    duration_warning: int = 1
+    api_id: str = field(default_factory=lambda: str(uuid4().hex))
+    headers: dict = field(default_factory=lambda: dict())
 
     def __post_init__(self):
-        self.api_id = uuid4().hex
+        self.headers['x-api-id'] = self.api_id
 
     def __str__(self):
         dict_object = asdict(self)

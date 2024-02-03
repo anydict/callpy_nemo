@@ -1,4 +1,5 @@
-from dataclasses import dataclass, asdict
+import uuid
+from dataclasses import dataclass, asdict, field
 
 
 @dataclass
@@ -10,7 +11,8 @@ class ApiResponse(object):
     message: str
     result: dict | None
     content_type: str = 'application/json'
-    attempt: int = 0
+    used_attempts: int = 0
+    api_id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
     def __str__(self):
         dict_object = asdict(self)
