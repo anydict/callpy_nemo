@@ -121,7 +121,7 @@ if __name__ == "__main__":
             return JSONResponse(content=response, status_code=404)
 
 
-        app.add_middleware(CORSMiddleware,
+        app.add_middleware(CORSMiddleware,  # noqa
                            allow_origins=[f"http://{config.app_api_host}:{config.app_api_port}"],
                            allow_credentials=True,
                            allow_methods=["*"],
