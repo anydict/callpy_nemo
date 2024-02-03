@@ -7,7 +7,6 @@ from datetime import datetime
 
 import uvicorn
 from fastapi import FastAPI, Request, Depends
-from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from loguru import logger
 from starlette import status
