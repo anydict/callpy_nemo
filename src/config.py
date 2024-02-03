@@ -40,6 +40,11 @@ class Config(object):
         else:
             print('WARNING! Config path not found => The default configuration will be used')
 
+        self.log_format = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green>[<level>{level}</level>]" \
+                          "<cyan>[{extra[object_id]}]</cyan>" \
+                          "<magenta>{name}</magenta>:<magenta>{function}</magenta>:" \
+                          "<cyan>{line}</cyan> - <level>{message}</level>"
+
         self.join_config: dict = join_config
         self.app_version = self.get_app_version()
         self.python_version = platform.python_version()

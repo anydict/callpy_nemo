@@ -78,27 +78,22 @@ if __name__ == "__main__":
         logger.configure(extra={"object_id": "None"})  # Default values if not bind extra variable
         logger.remove()  # this removes duplicates in the console if we use custom log format
 
-        custom_log_format = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green>[<level>{level}</level>]" \
-                            "<cyan>[{extra[object_id]}]</cyan>" \
-                            "<magenta>{name}</magenta>:<magenta>{function}</magenta>:" \
-                            "<cyan>{line}</cyan> - <level>{message}</level>"
-
         # for console
         if config.console_log:
             logger.add(sink=sys.stdout,
-                       filter=lambda record: record["level"].name == record["level"].name,
-                       format=custom_log_format,
+                       format=config.log_format,
                        colorize=True)
         # different files for different message types
         logger.add(sink="logs/error.log",
                    filter=filter_error_log,
-                   rotation="1000 MB",
+                   rotation="500 MB",
                    compression='gz',
-                   format=custom_log_format)
+                   format=config.log_format)
         logger.add(sink=f"logs/{config.app}.log",
-                   rotation="1000 MB",
+                   rotation="500 MB",
                    compression='gz',
-                   format=custom_log_format)
+                   retention=10,
+                   format=config.log_format)
 
         logger = logger.bind(object_id=os.path.basename(__file__))
 
