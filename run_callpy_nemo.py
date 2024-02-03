@@ -10,6 +10,7 @@ from fastapi import FastAPI, Request, Depends
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from loguru import logger
+from starlette import status
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 
@@ -48,22 +49,22 @@ async def custom_validation_exception_handler(request: Request,
     @param request: API request
     @param exc: Error information
     """
-    errors = []
+    errors = ['ValidationError']
     for error in exc.errors():
         errors.append({
             'loc': error['loc'],
             'msg': error['msg'],
             'type': error['type']
         })
-    logger.error(f"ValidationError in path: {request.url.path}")
+    logger.error(f"ValidationError in path: {request.url.path} request_body: {await request.body()}")
     logger.error(f"ValidationError detail: {errors}")
     logger.error(f"ValidationError client_info: {request.client}")
     logger.error(request.headers)
 
-    request_body = await request.body()
-    logger.error(request_body)
-
-    return await request_validation_exception_handler(request, exc)
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"status": "error", "msg": " ### ".join(errors)}
+    )
 
 
 if __name__ == "__main__":
