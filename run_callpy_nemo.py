@@ -35,13 +35,9 @@ async def app_shutdown():
 
 async def logging_dependency(request: Request):
     api_id = str(uuid.uuid4())
-    logger.debug(f"api_id={api_id} {request.method} {request.url}")
-    logger.debug(f"api_id={api_id} Params:")
-    for name, value in request.path_params.items():
-        logger.debug(f"api_id={api_id}\t{name}: {value}")
-    logger.debug(f"api_id={api_id} Headers:")
-    for name, value in request.headers.items():
-        logger.debug(f"api_id={api_id}\t{name}: {value}")
+    logger.debug(f"api_id={api_id} {request.method} {request.url} body: {await request.body()}")
+    logger.debug(f"api_id={api_id} Params: {request.path_params.items()}")
+    logger.debug(f"api_id={api_id} Headers: {request.headers.items()}")
 
 
 async def custom_validation_exception_handler(request: Request,
