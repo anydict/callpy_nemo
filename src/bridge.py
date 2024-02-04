@@ -140,7 +140,7 @@ class Bridge(object):
             if create_bridge_response.success:
                 # Silence tone is necessary for the immediate transmission of RTP packets to the ExternalMedia channel
                 await self.asterisk_client.start_bridge_playback(bridge_id=self.bridge_id,
-                                                                 clip_id=f'SILENCE_TONE_{self.bridge_id}',
+                                                                 clip_id=f'silence_tone_{self.bridge_id}',
                                                                  media='tone:0')
             else:
                 self.log.error(f'Problem when creating a bridge, msg={create_bridge_response.message}')

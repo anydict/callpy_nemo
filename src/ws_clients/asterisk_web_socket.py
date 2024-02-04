@@ -35,7 +35,7 @@ class AsteriskWebSocket(Process):
         super().start()
 
     def run(self):
-        if self.finish_event.is_set() is False:
+        while self.finish_event.is_set() is False:
             self.check_connect()
             self.start_listener()
 
@@ -52,11 +52,16 @@ class AsteriskWebSocket(Process):
 
     def start_listener(self):
         self.log.success('ARI ws created and infinite listener started')
-        with connect(self.ws_address) as ws:
+        try:
+            with connect(self.ws_address) as ws:
+                while self.finish_event.is_set() is False:
+                    try:
+                        event_json = ws.recv(timeout=1)
+                    except TimeoutError:
+                        continue
+                    except KeyboardInterrupt:
+                        break
 
-            while self.finish_event.is_set() is False:
-                try:
-                    event_json = ws.recv(timeout=1)
                     if self.config.asterisk_ari_log:
                         self.log.debug(event_json)
 
@@ -69,10 +74,8 @@ class AsteriskWebSocket(Process):
                             self.log.info(f'skip trigger event with status={trigger_event.status}')
                         else:
                             self.trigger_event_manager.append_queue_trigger_events(trigger_event)
-                except TimeoutError:
-                    continue
-                except Exception as e:
-                    self.log.exception(e)
+        except Exception as e:
+            self.log.warning(f'end start_listener e={e}')
 
         if self.finish_event.is_set() is False:
             time.sleep(4)  # waiting, maybe it is a night restart
