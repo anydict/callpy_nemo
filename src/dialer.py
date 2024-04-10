@@ -71,7 +71,7 @@ class Dialer(object):
     @staticmethod
     async def smart_sleep(delay: int):
         for _ in range(0, delay):
-            await asyncio.sleep(delay)
+            await asyncio.sleep(1)
 
     async def alive_report(self):
         """

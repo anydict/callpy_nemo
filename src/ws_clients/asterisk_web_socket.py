@@ -63,11 +63,10 @@ class AsteriskWebSocket(Process):
                         break
 
                     if self.config.asterisk_ari_log:
-                        self.log.debug(event_json)
+                        event = json.loads(event_json)
+                        self.log.debug(event)
 
-                        trigger_event = self.trigger_event_manager.asterisk_event_to_trigger_event(
-                            json.loads(event_json)
-                        )
+                        trigger_event = self.trigger_event_manager.asterisk_event_to_trigger_event(event)
                         if trigger_event.event_type in DISABLED_ASTERISK_EVENT_TYPES:
                             self.log.info(f'skip  trigger event with type={trigger_event.event_type}')
                         elif trigger_event.status in DISABLED_TRIGGER_EVENT_TYPES:

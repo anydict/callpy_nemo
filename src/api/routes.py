@@ -1,9 +1,7 @@
-import json
 from datetime import datetime
 from statistics import fmean
 
 from fastapi import APIRouter, status
-from fastapi.responses import Response
 from loguru import logger
 from pydantic import BaseModel, ValidationError
 from starlette.responses import JSONResponse
@@ -51,13 +49,13 @@ class Routers(object):
         self.router.add_api_route(path="/", endpoint=self.get_root, methods=["GET"], tags=["Common"])
         self.router.add_api_route(path="/diag", endpoint=self.get_diag, methods=["GET"], tags=["Common"])
         self.router.add_api_route(path="/stats", endpoint=self.get_stats, methods=["GET"], tags=["Common"])
+        self.router.add_api_route(path="/restart", endpoint=self.restart, methods=["POST"], tags=["Common"])
 
         self.router.add_api_route(path="/rooms", endpoint=self.get_rooms, methods=["GET"], tags=["Call"])
         self.router.add_api_route(path="/bridges", endpoint=self.get_bridges, methods=["GET"], tags=["Call"])
         self.router.add_api_route(path="/chans", endpoint=self.get_chans, methods=["GET"], tags=["Call"])
         self.router.add_api_route(path="/hangup", endpoint=self.hangup, methods=["DELETE"], tags=["Call"])
 
-        self.router.add_api_route(path="/restart", endpoint=self.restart, methods=["POST"], tags=["Call"])
         self.router.add_api_route(path="/originate", endpoint=self.originate, methods=["POST"], tags=["Call"])
 
         self.router.add_api_route(path="/analise", endpoint=self.analise, methods=["POST"], tags=["MediaSonic"])
@@ -66,18 +64,18 @@ class Routers(object):
         self.router.add_api_route(path="/extapi", endpoint=self.extapi, methods=["GET"], tags=["ExtApi"])
 
     def get_root(self):
-        json_str = json.dumps({"app": "callpy", "server": self.config.asterisk_host}, indent=4, default=str)
-
-        return Response(content=json_str, media_type='application/json')
+        return JSONResponse(content={
+            "app": self.config.app,
+            "host": self.config.app_api_host,
+            "port": self.config.app_api_port
+        })
 
     def get_diag(self):
-        json_str = json.dumps({
+        return JSONResponse(content={
             "app": self.config.app,
             "wait_shutdown": self.config.wait_shutdown,
             "alive": self.config.alive,
-        }, indent=4, default=str)
-
-        return Response(content=json_str, media_type='application/json')
+        })
 
     def get_stats(self):
         stat_store = [0]
@@ -88,22 +86,32 @@ class Routers(object):
                     d2 = datetime.strptime(tag_status.get('trigger_time'), '%Y-%m-%dT%H:%M:%S.%f')
                     diff = (d2 - d1).total_seconds()
                     stat_store.append(diff)
-        json_str = json.dumps({
+        json_str = {
             "max": max(stat_store),
             "avg": fmean(stat_store),
             "alive": self.config.alive
-        }, indent=4, default=str)
+        }
 
-        return Response(content=json_str, media_type='application/json')
+        return JSONResponse(content=json_str)
+
+    def restart(self):
+        self.config.wait_shutdown = True
+
+        return JSONResponse(content={
+            "app": self.config.app,
+            "host": self.config.app_api_host,
+            "port": self.config.app_api_port,
+            "wait_shutdown": self.config.wait_shutdown,
+            "alive": self.config.alive,
+            "msg": "app restart started",
+        })
 
     def get_rooms(self):
         rooms = {}
         for room in self.dialer.rooms:
             rooms[self.dialer.rooms[room].room_id] = self.dialer.rooms[room].tags_statuses
 
-        json_str = json.dumps({"rooms": rooms}, indent=4, default=str)
-
-        return Response(content=json_str, media_type='application/json')
+        return JSONResponse(content={"rooms": rooms})
 
     def get_bridges(self):
         bridges = []
@@ -111,9 +119,7 @@ class Routers(object):
             for bridge in self.dialer.rooms[room].bridges:
                 bridges.append(self.dialer.rooms[room].bridges[bridge].bridge_id)
 
-        json_str = json.dumps({"bridges": bridges}, indent=4, default=str)
-
-        return Response(content=json_str, media_type='application/json')
+        return JSONResponse(content={"bridges": bridges})
 
     def get_chans(self):
         chans = []
@@ -122,26 +128,12 @@ class Routers(object):
                 for chan in list(bridge.chans.values()):
                     chans.append(chan)
 
-        json_str = json.dumps({"chans": chans}, indent=4, default=str)
-
-        return Response(content=json_str, media_type='application/json')
-
-    def restart(self):
-        self.config.wait_shutdown = True
-
-        json_str = json.dumps({
-            "app": self.config.app,
-            "server": self.config.asterisk_host,
-            "wait_shutdown": self.config.wait_shutdown,
-            "alive": self.config.alive,
-            "msg": "app restart started",
-        }, indent=4, default=str)
-
-        return Response(content=json_str, media_type='application/json')
+        return JSONResponse(content={"chans": chans})
 
     def originate(self, params: OriginateParams):
         if self.config.alive is False:
-            return Response(status_code=503)
+            return JSONResponse(content={"res": "ERROR"},
+                                status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         call = Call(lead_id=params.lead_id,
                     dialplan_name='oper_client')
@@ -150,26 +142,24 @@ class Routers(object):
 
         for room in list(self.dialer.rooms.values()):
             if room.call.lead_id == params.lead_id:
-                return Response(content='{"res": "ERROR", "msg": "such lead_id has already been launched"}',
-                                media_type='application/json')
+                return JSONResponse(content={"res": "ERROR", "msg": "such lead_id has already been launched"})
 
         self.dialer.call_queue.append(call)
 
-        json_str = json.dumps({
+        return JSONResponse(content={
             "token": params.token,
             "intphone": params.intphone,
             "extphone": params.extphone,
             "idclient": params.idclient,
-            "dir": dir,
+            "dir": params.dir,
             "calleridrule": params.calleridrule,
             "call_id": call.call_id
-        }, indent=4, default=str)
-
-        return Response(content=json_str, media_type='application/json')
+        })
 
     def analise(self, params: AnaliseParams):
         if self.config.alive is False:
-            return Response(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return JSONResponse(content={"res": "ERROR"},
+                                status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         params.analise_name = params.analise_name.upper()
 
@@ -191,16 +181,10 @@ class Routers(object):
             pass
 
         return JSONResponse(
-            status_code=status.HTTP_200_OK,
             content={"msg": "success"}
         )
 
     def hangup(self, params: HangupParams):
-        json_str = json.dumps({
-            "token": params.token,
-            "call_id": params.call_id
-        }, indent=4, default=str)
-
         for room in list(self.dialer.rooms.values()):
             if room.call_id == params.call_id:
                 event = TriggerEvent(app=self.config.app,
@@ -215,9 +199,15 @@ class Routers(object):
                                      value='api_hangup'
                                      )
                 self.dialer.trigger_event_manager.append_queue_trigger_events(event)
-                return Response(content=json_str, media_type='application/json')
+                return JSONResponse(content={
+                    "token": params.token,
+                    "call_id": params.call_id
+                })
 
-        return Response(content='{"res": "ERROR", "msg": "Not found call_id"}', media_type='application/json')
+        return JSONResponse(content={
+            "res": "ERROR",
+            "msg": "Not found call_id"
+        })
 
     def extapi(self,
                token: str = '',
@@ -230,7 +220,7 @@ class Routers(object):
                lead_id: int = 0,
                call_id: str = ''
                ):
-        json_str = json.dumps({
+        response = {
             "token": token,
             "cmd": cmd,
             "intphone": intphone,
@@ -239,11 +229,11 @@ class Routers(object):
             "dir": dir,
             "calleridrule": calleridrule,
             "lead_id": lead_id
-        }, indent=4, default=str)
+        }
 
         # TODO add work with token
         if token != '612tkABC':
-            return Response(content='{"res": "ERROR", "msg": "No valid token"}', media_type='application/json')
+            return JSONResponse(content={"res": "ERROR", "msg": "No valid token"})
 
         if cmd == 'restart':
             return self.restart()
@@ -257,18 +247,16 @@ class Routers(object):
                                          calleridrule=calleridrule,
                                          lead_id=lead_id)
             except ValidationError as e:
-                self.log.debug(f'ValidationError = {e} \n\n json_str = {json_str}')
-                return Response(content='{"res": "ERROR", "msg": "Incorrect fields in request"}',
-                                media_type='application/json')
+                self.log.debug(f'ValidationError = {e} \n\n response = {response}')
+                return JSONResponse(content={"res": "ERROR", "msg": "Incorrect fields in request"})
             return self.originate(params)
         elif cmd == 'hangup':
             try:
                 params = HangupParams(token=token,
                                       call_id=call_id)
             except ValidationError as e:
-                self.log.debug(f'ValidationError = {e} \n\n json_str = {json_str}')
-                return Response(content='{"res": "ERROR", "msg": "Incorrect fields in request"}',
-                                media_type='application/json')
+                self.log.debug(f'ValidationError = {e} \n\n response = {response}')
+                return JSONResponse(content={"res": "ERROR", "msg": "Incorrect fields in request"})
             return self.hangup(params)
 
-        return Response(content=json_str, media_type='application/json')
+        return JSONResponse(content=response, media_type='application/json')
