@@ -14,6 +14,7 @@ class Config(object):
         "app": "callpy",
         "app_api_host": "127.0.0.1",
         "app_api_port": 8005,
+        "timeout_keep_alive": 60,
         "alive": True,
         "wait_shutdown": False,
         "console_log": True,
@@ -58,6 +59,7 @@ class Config(object):
         self.app: str = str(self.new_config['app'])
         self.app_api_host: str = str(self.new_config['app_api_host'])
         self.app_api_port: int = int(self.new_config['app_api_port'])
+        self.timeout_keep_alive: int = int(self.new_config['timeout_keep_alive'])
         self.asterisk_host: str = str(self.new_config['asterisk_host'])
         self.asterisk_port: int = int(self.new_config['asterisk_port'])
         self.asterisk_login: str = str(self.new_config['asterisk_login'])

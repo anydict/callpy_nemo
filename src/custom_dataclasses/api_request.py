@@ -1,4 +1,4 @@
-from dataclasses import dataclass, asdict, field
+from dataclasses import dataclass, field
 from uuid import uuid4
 
 
@@ -8,7 +8,7 @@ class ApiRequest(object):
     method: str
     request: dict = None
     timeout: int = None
-    correct_http_code: set = (200, 201, 202, 204, 404)
+    correct_http_code: set = (200, 201, 204, 404)
     debug_log: bool = True
     attempts: int = 3
     duration_warning: int = 1
@@ -17,9 +17,10 @@ class ApiRequest(object):
 
     def __post_init__(self):
         self.headers['x-api-id'] = self.api_id
+        self.headers['x-duration-warning'] = str(self.duration_warning)
 
     def __str__(self):
-        dict_object = asdict(self)
+        dict_object = self.__dict__
         if len(str(self.request)) > 1000:
             dict_object['request'] = f"len={len(str(self.request))}"
 

@@ -2,18 +2,16 @@ import asyncio
 import os
 import platform
 import sys
-import uuid
-from datetime import datetime
 
 import uvicorn
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from loguru import logger
-from starlette import status
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import JSONResponse
 
 from src.api.routes import Routers
+from src.api.utils import custom_validation_exception_handler, custom_404_handler, add_process_time_header
 from src.config import Config, filter_error_log
 from src.dialer import Dialer
 
@@ -22,8 +20,7 @@ async def app_startup():
     """Run our application"""
     app.dialer = Dialer(config=config, app=config.app)
     routers = Routers(config=config, dialer=app.dialer)
-
-    app.include_router(routers.router, dependencies=[Depends(logging_dependency)])
+    app.include_router(routers.router)
 
     asyncio.create_task(app.dialer.start_dialer())
 
@@ -31,39 +28,6 @@ async def app_startup():
 async def app_shutdown():
     if hasattr(app, 'dialer') and isinstance(app.dialer, Dialer):
         await app.dialer.close_session()
-
-
-async def logging_dependency(request: Request):
-    api_id = str(uuid.uuid4())
-    logger.debug(f"api_id={api_id} {request.method} {request.url} body: {await request.body()}")
-    logger.debug(f"api_id={api_id} Params: {request.path_params.items()}")
-    logger.debug(f"api_id={api_id} Headers: {request.headers.items()}")
-
-
-async def custom_validation_exception_handler(request: Request,
-                                              exc: RequestValidationError):
-    """
-    logging validation error
-
-    @param request: API request
-    @param exc: Error information
-    """
-    errors = ['ValidationError']
-    for error in exc.errors():
-        errors.append({
-            'loc': error['loc'],
-            'msg': error['msg'],
-            'type': error['type']
-        })
-    logger.error(f"ValidationError in path: {request.url.path} request_body: {await request.body()}")
-    logger.error(f"ValidationError detail: {errors}")
-    logger.error(f"ValidationError client_info: {request.client}")
-    logger.error(request.headers)
-
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"status": "error", "msg": " ### ".join(errors)}
-    )
 
 
 if __name__ == "__main__":
@@ -93,33 +57,16 @@ if __name__ == "__main__":
 
         logger = logger.bind(object_id=os.path.basename(__file__))
 
-        app = FastAPI(exception_handlers={RequestValidationError: custom_validation_exception_handler},
+        exception_handlers = {
+            404: custom_404_handler,
+            RequestValidationError: custom_validation_exception_handler
+        }
+
+        app = FastAPI(exception_handlers=exception_handlers,
                       version=config.app_version)
 
-
-        @app.middleware("http")
-        async def add_process_time_header(request: Request, call_next):
-            start_time = datetime.now()
-            response = await call_next(request)
-            process_time = (datetime.now() - start_time).total_seconds()
-            if process_time > 1:
-                logger.warning(f'Huge process time: {process_time}, {request.method} {request.url} {request.headers}')
-            response.headers['X-Current-Time'] = datetime.now().isoformat()
-            response.headers['X-Process-Time'] = str(process_time)
-            response.headers['Cache-Control'] = 'no-cache, no-store'
-            return response
-
-
-        @app.exception_handler(404)
-        async def custom_404_handler(request: Request, __):
-            msg = f"{request.method} API handler for {request.url} not found"
-            logger.warning(msg)
-            response = {
-                "status": "error",
-                "msg": msg
-            }
-            return JSONResponse(content=response, status_code=404)
-
+        app.add_middleware(BaseHTTPMiddleware,  # noqa
+                           dispatch=add_process_time_header)
 
         app.add_middleware(CORSMiddleware,  # noqa
                            allow_origins=[f"http://{config.app_api_host}:{config.app_api_port}"],
@@ -152,6 +99,7 @@ if __name__ == "__main__":
                     port=config.app_api_port,
                     log_level="info",
                     log_config=uvicorn_log_config,
+                    timeout_keep_alive=config.timeout_keep_alive,
                     reload=False)
 
         logger.info(f"Shutting down")
