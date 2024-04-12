@@ -6,7 +6,7 @@ from typing import Optional
 from loguru import logger
 
 from src.custom_dataclasses.trigger_event import TriggerEvent
-from src.good_func.good_func import fix_iso_timestamp
+from src.custom_functions.sql_equivalents import fix_iso_timestamp
 
 UNKNOWN = 'UNKNOWN'
 
